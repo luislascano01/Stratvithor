@@ -5,9 +5,28 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a0aac8c8-fe75-405f-be9b-0686ecd8a0c2" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/CreditAnalysisGPT.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/CreditAnalysisGPT.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Report_Compose/DataMolder.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Report_Compose/DataQuerier.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Report_Compose/Integrator.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Report_Compose/PromptManager.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Report_Compose/RequestsMngrAPI.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Report_Compose/TemplateManager.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Text_Process/webTextProcessing.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Web_Search/BloombergCaller.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Web_Search/GoogleSearchCaller.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Web_Search/HTMLArticleScrapper.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Web_Search/QuerySynthesizer.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Web_Search/ResultsOrganizer.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Web_Search/SearchIntegrator.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Web_Search/TestScrapper.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Web_Search/WebSearchAPI.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/Web_Search/YFinanceCaller.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Prompts/prompts.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SwiftCodeFetching.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UnknownSwiftCodes.xlsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/20250103_AI Project Prompts_v3.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AI Test_Independence Realty Trust.docx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/CreditAnalysisPrompt_POC.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/CreditAnalysisPrompt_POC.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -18,6 +37,7 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
+        <option value="Python Script" />
         <option value="Jupyter Notebook" />
       </list>
     </option>
@@ -40,13 +60,20 @@
   &quot;associatedIndex&quot;: 3
 }</component>
   <component name="ProjectId" id="2rgttznwsZ3GugLhVbr0LRYfVRy" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Python.GoogleSearchCaller.executor": "Run",
+    "Python.HTMLArticleScrapper.executor": "Run",
+    "Python.PromptManager.executor": "Run",
+    "Python.QuerySynthesizer.executor": "Run",
+    "Python.TestScrapper.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "master",
@@ -56,15 +83,150 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.intellij.jupyter.core.jupyter.connections.configuration.JupyterServerConfigurable",
+    "settings.editor.selected.configurable": "configurable.group.build",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/Backend/TextProcess" />
+      <recent name="$PROJECT_DIR$/Backend/WebSearch" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.TestScrapper">
+    <configuration name="GoogleSearchCaller" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="CreditAnalysisGPT" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Backend/Web_Search" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Web_Search/GoogleSearchCaller.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="HTMLArticleScrapper" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="CreditAnalysisGPT" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Backend/Web_Search" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Web_Search/HTMLArticleScrapper.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="PromptManager" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="CreditAnalysisGPT" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Report_Compose/PromptManager.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="QuerySynthesizer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="CreditAnalysisGPT" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Backend/Web_Search" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Web_Search/QuerySynthesizer.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="TestScrapper" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="CreditAnalysisGPT" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Backend/Web_Search" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Web_Search/TestScrapper.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.TestScrapper" />
+        <item itemvalue="Python.HTMLArticleScrapper" />
+        <item itemvalue="Python.GoogleSearchCaller" />
+        <item itemvalue="Python.QuerySynthesizer" />
+        <item itemvalue="Python.PromptManager" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-PY-243.22562.220" />
-        <option value="bundled-python-sdk-0fc6c617c4bd-9a18a617cbe4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.22562.220" />
+        <option value="bundled-js-predefined-d6986cc7102b-822845ee3bb5-JavaScript-PY-243.23654.177" />
+        <option value="bundled-python-sdk-91d3a02ef49d-43b77aa2d136-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.23654.177" />
       </set>
     </attachedChunks>
   </component>
@@ -78,10 +240,35 @@
       <updated>1736992764753</updated>
       <workItem from="1736992765776" duration="958000" />
       <workItem from="1736996196381" duration="6997000" />
+      <workItem from="1737061725733" duration="821000" />
+      <workItem from="1737584320795" duration="8625000" />
+      <workItem from="1737833791492" duration="7007000" />
+      <workItem from="1737849553669" duration="21667000" />
+      <workItem from="1737987388217" duration="26577000" />
+      <workItem from="1738685375351" duration="4000" />
+      <workItem from="1738809663744" duration="2080000" />
+      <workItem from="1738856423524" duration="5126000" />
+      <workItem from="1738872243844" duration="10950000" />
+      <workItem from="1739052434553" duration="17572000" />
+      <workItem from="1739206934698" duration="18799000" />
+      <workItem from="1739295499323" duration="3971000" />
+      <workItem from="1739302022233" duration="1482000" />
+      <workItem from="1739303585052" duration="8286000" />
+      <workItem from="1739433879820" duration="45000" />
+      <workItem from="1739459110401" duration="1301000" />
+      <workItem from="1739460421316" duration="2437000" />
+      <workItem from="1739462869924" duration="23074000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/CreditAnalysisGPT$GoogleSearchCaller.coverage" NAME="GoogleSearchCaller Coverage Results" MODIFIED="1739468428589" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Backend/Web_Search" />
+    <SUITE FILE_PATH="coverage/CreditAnalysisGPT$QuerySynthesizer.coverage" NAME="QuerySynthesizer Coverage Results" MODIFIED="1739462254807" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Backend/Web_Search" />
+    <SUITE FILE_PATH="coverage/CreditAnalysisGPT$PromptManager.coverage" NAME="PromptManager Coverage Results" MODIFIED="1739299330619" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/CreditAnalysisGPT$HTMLArticleScrapper.coverage" NAME="HTMLArticleScrapper Coverage Results" MODIFIED="1739476516783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Backend/Web_Search" />
+    <SUITE FILE_PATH="coverage/CreditAnalysisGPT$TestScrapper.coverage" NAME="TestScrapper Coverage Results" MODIFIED="1739477645484" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Backend/Web_Search" />
   </component>
 </project>

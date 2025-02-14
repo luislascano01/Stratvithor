@@ -1,0 +1,262 @@
+@startuml
+skinparam componentStyle rectangle
+left to right direction
+
+scale 0.7
+component Frontend {
+    [Web_Application]
+    port https_fe as "443"
+
+    Web_Application --> https_fe
+    Web_Application <-- https_fe
+}
+
+component Database_Server {
+    database Rawtext {
+    }
+        node Cache_Service {
+        [Query_encoder]
+        [Company_Pointers]
+        [Decaching_Module]
+    }
+
+    node Chat_History_Service {
+        [""]
+    }
+
+}
+
+component Webserver {
+  [Reverse_Proxy]
+  [HTML5_Files]
+  port https as "443"
+  port App_Route as 8888
+
+
+  https ---[hidden]-> 8888
+  Reverse_Proxy -u--> 8888
+  Reverse_Proxy <-right- 8888
+  Reverse_Proxy <-right- https
+  Reverse_Proxy --> HTML5_Files
+  Reverse_Proxy <-- HTML5_Files
+
+
+}
+Cloud Internet {
+node External_LLM
+}
+
+Reverse_Proxy --> https
+https_fe <-----> https
+top to bottom direction
+component Application_Server {
+    port App_Route as 8888App
+    port LAN as AppSrvLan
+
+    node Security_Service {
+        [Keywords_Database]
+        [Anomaly_Logging]
+        [Query_Checker]
+        Query_Checker --> Keywords_Database
+        Keywords_Database --> Query_Checker
+        Query_Checker --> Anomaly_Logging
+    }
+
+    node API_Service {
+    }
+    API_Service --right-> AppSrvLan
+}
+
+8888 --right-> 8888App
+8888 <-up- 8888App
+
+8888App -d-> API_Service
+
+
+component Backend {
+    port internet_access
+    port LAN_access
+    node Internal_Firewall{
+    }
+
+    Internal_Firewall --> internet_access
+    Internal_Firewall <-- internet_access
+
+    node Web_Search {
+        [Gogl_Srch_Caller]
+        [Query_Synthesizer]
+        [Y_Finance_Cllr]
+        [Bloomberg_Cllr]
+
+        [Results_Organizer]
+        [Search_Integrator]
+        [API] as Search_API
+        port Online_Search
+        port LAN as LAN_Search
+        LAN_Search --> Search_API
+        Search_API --left-> LAN_Search
+
+        [Search_Integrator] -> [Query_Synthesizer] : 1.0
+        [Query_Synthesizer] -> [Search_Integrator] : 1.1
+        [Search_Integrator] -left-> [Gogl_Srch_Caller] : 2.0
+        [Search_Integrator] <-left- [Gogl_Srch_Caller] :2.1
+
+        [Search_Integrator] -down-> [Y_Finance_Cllr] : 2.0
+        [Search_Integrator] <-left- [Y_Finance_Cllr] :2.1
+
+        [Search_Integrator] -down-> [Bloomberg_Cllr] : 2.0
+        [Search_Integrator] <-right- [Bloomberg_Cllr] :2.1
+
+        [Search_Integrator] -up-> [Results_Organizer] : 3.0
+        [Search_Integrator] <-up- [Results_Organizer] :3.1
+
+        [Gogl_Srch_Caller] -> Online_Search : 1
+        Online_Search -> [Gogl_Srch_Caller] : 2
+
+
+    }
+
+    Search_API --> Search_Integrator : start
+    Search_API <-- Search_Integrator: response
+
+    node Text_Processing {
+        portout LLM_Query
+        portin LLM_Response
+        [Base_Knowledge]
+        [Search_Parser]
+        [Aggregator]
+        [API] as Text_Process_API
+    }
+
+    node LLM_Query_Router {
+        portin In_Query_Port
+        portout Out_Query_Port_Local
+        port Out_Query_Port_Internet
+        [Task_Identifier]
+        [Auto_Model_Picker]
+        [Query_Sender]
+
+        [Task_Identifier] -> [Auto_Model_Picker]
+        [Task_Identifier] <- [Auto_Model_Picker]
+        In_Query_Port --> [Task_Identifier]
+        [Task_Identifier] --> [Query_Sender]
+        [Query_Sender] -> Out_Query_Port_Local
+    }
+
+    Text_Processing -[hidden]-> LLM_Query_Router
+    LLM_Query --left-> In_Query_Port
+    Out_Query_Port_Internet --> Internal_Firewall
+    node Local_LLM {
+        [Load_Balancer]
+        [Model_Lifter]
+        port in as inLocalLLM
+        port out as outLocalLLM
+    }
+
+    Internet -[hidden]->Application_Server
+
+    Application_Server -d[hidden]-----> Backend
+
+
+    Out_Query_Port_Local --u----> inLocalLLM
+    Internal_Firewall <- Out_Query_Port_Internet
+
+    Local_LLM -u[hidden]--> Internal_Firewall
+
+    node Report_Composer {
+        [Data_Querier]
+        [Template_Manager]
+        [Prompt_Manager]
+        [Integrator]
+        [Data_Molder]
+        [Requests_Mngr_API]
+
+
+        [Prompt_Manager] -d-> [Integrator] : 0.0
+        [Integrator] --l-> [Prompt_Manager] : 0.1
+        Requests_Mngr_API --> Integrator : start
+        Integrator -right-> Requests_Mngr_API : end
+
+        Integrator -up-> Data_Querier: 1.0
+        Data_Querier -down-> Integrator: 1.1
+        Integrator --> Template_Manager: 2.0
+        Template_Manager --> Integrator : 2.1
+        Integrator -up-> Data_Molder: 3.0
+        Data_Molder -down-> Integrator : 3.1
+        Data_Molder -[hidden]-> Integrator
+        port Search as 8989
+        port Core_LLM as 9000
+        port Report_LAN
+
+        Data_Querier -> 8989 : 1
+        8989 -> Data_Querier : 2
+
+        Data_Molder -> 9000 : 1
+        9000 -> Data_Molder : 2
+        Data_Molder -[hidden]-> 9000
+
+        Report_LAN -> Requests_Mngr_API
+        [Requests_Mngr_API] -> Report_LAN
+
+
+
+    }
+
+
+    8989 -u-> LAN_Search : 1
+    8989 <-u- LAN_Search : 2
+
+    Company_Pointers --> Query_encoder
+    Decaching_Module --> Query_encoder
+    Query_encoder --> Decaching_Module
+}
+outLocalLLM -> LLM_Response
+
+AppSrvLan --> LAN_access
+
+
+Internal_Firewall -[hidden]d-----> LLM_Query_Router
+Internal_Firewall -[hidden]d-----> LLM_Query_Router
+Local_LLM -r[hidden]-> LLM_Query_Router
+Internal_Firewall -[hidden]d-> Web_Search
+Internal_Firewall -[hidden]d-> Web_Search
+
+internet_access -[hidden]> Internal_Firewall
+internet_access -[hidden]> Internal_Firewall
+internet_access -[hidden]> Internal_Firewall
+internet_access -[hidden]> Internal_Firewall
+internet_access -[hidden]> Internal_Firewall
+internet_access -[hidden]> Internal_Firewall
+
+
+internet_access -up-> External_LLM
+
+LAN_access -d-> Report_LAN
+
+
+Database_Server -[hidden]d-----> Application_Server
+Application_Server -l[hidden]-> Application_Server
+Application_Server -[hidden]d-----> Backend
+Application_Server -[hidden]d-----> Report_Composer
+
+Database_Server -----d[hidden]--> Backend
+Database_Server ---r[hidden]> Backend
+Database_Server -d[hidden]> Web_Search
+
+Internal_Firewall ---down-> Online_Search : 2
+
+9000 -> LLM_Query
+
+
+
+
+
+Online_Search ---> Internal_Firewall : 1
+
+LAN_access -> AppSrvLan
+
+Report_LAN -> LAN_access
+
+Text_Processing ---d-----> LLM_Query_Router
+
+@enduml
