@@ -170,6 +170,7 @@ class GoogleSearchCaller:
             "Metadata": dict,          # domain, content length, etc.
           }
         """
+        print("Starting URL parsing and scraping...")
         if self.concurrency > 1:
             return self._process_urls_concurrently(urls)
         else:
@@ -193,17 +194,21 @@ class GoogleSearchCaller:
                     if data:
                         results.append(data)
                 except Exception as e:
-                    logging.error(f"Error processing {url}: {e}", exc_info=True)
+                    logging.error(f"Error processing {url}", exc_info=True)
         return results
 
     def _process_url(self, url: str) -> Optional[Dict]:
-        # Simple delay to reduce request bursts
+        # Delay to reduce request bursts
         time.sleep(random.uniform(self.min_delay, self.max_delay))
-
-        if url.lower().endswith(".pdf"):
-            return self._handle_pdf(url)
-        else:
-            return self._handle_html(url)
+        try:
+            if url.lower().endswith(".pdf"):
+                result = self._handle_pdf(url)
+            else:
+                result = self._handle_html(url)
+            return result  # Will be None if processing failed
+        except Exception as e:
+            logging.error(f"Error processing URL {url}", exc_info=True)
+            return None
 
     def _handle_pdf(self, url: str) -> Optional[Dict]:
         if not PDF_AVAILABLE:
@@ -235,7 +240,7 @@ class GoogleSearchCaller:
                     if extracted_tables:
                         tables.extend(extracted_tables)
         except Exception as e:
-            logging.error(f"PDF processing error for {url}: {e}", exc_info=True)
+            logging.error(f"PDF processing error for {url}", exc_info=True)
             return None
 
         main_content = self._extract_main_content(main_text) if main_text else None
@@ -264,7 +269,7 @@ class GoogleSearchCaller:
             response.raise_for_status()
             html_content = response.text
         except requests.RequestException as e:
-            logging.error(f"Request failed for {url}: {e}", exc_info=True)
+            logging.error(f"Request failed for {url}", exc_info=True)
             return None
 
         page_title, main_text = self._advanced_html_extraction(url, html_content)
@@ -315,7 +320,7 @@ class GoogleSearchCaller:
                             f.write(chunk)
             return str(filename)
         except requests.RequestException as e:
-            logging.error(f"Download failed for {url}: {e}", exc_info=True)
+            logging.error(f"Download failed for {url}", exc_info=True)
             return None
 
     def _extract_main_content(self, text: str) -> str:
@@ -359,7 +364,7 @@ class GoogleSearchCaller:
                 text = article.text.strip() if article.text else None
                 return (title, text)
             except Exception as e:
-                logging.warning(f"newspaper3k parsing failed: {e}", exc_info=True)
+                logging.warning(f"newspaper3k parsing failed: {url}", exc_info=True)
 
         if READABILITY_AVAILABLE:
             try:
@@ -371,7 +376,7 @@ class GoogleSearchCaller:
                 text = soup.get_text(separator="\n").strip()
                 return (title, text)
             except Exception as e:
-                logging.warning(f"readability-lxml parsing failed: {e}", exc_info=True)
+                logging.warning(f"readability-lxml parsing failed: {url}", exc_info=True)
 
         return (None, None)
 

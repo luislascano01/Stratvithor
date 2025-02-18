@@ -2,63 +2,110 @@ prompts:
   initial:
     section_name: "Set Up"
     text: "For the company that will be specified below, I need you to create a professional, in-depth report suitable for presentation to the Credit Department of a leading international bank. The report must answer the specific questions I will provide, with each answer using the exact title provided before the semicolon as the header of the answer. The title must be used verbatim as the header. Guidelines for the report: Do not begin the report until I specify the company and ask a question. Use only reliable sources such as the company’s SEC filings, annual reports, and official website. Wikipedia must be avoided entirely. Clearly state the sources of information for every response. For any data comparisons, specify the relevant periods to ensure accuracy. Avoid any introductory or explanatory sentences about the question. Go directly to the response under the provided title."
+    id: 0
+    system: true
 
   background:
     section_name: "Company Overview"
     text: "Briefly describe the history of the company, what it does, where it's located and in the last paragraph, explain how much the company has generated in revenues over the last quarter, how much in EBITDA (show margin percentage), how much debt the company has on its balance sheet and what is the total leverage (also net of cash)."
+    id: 1
+    system: false
 
   glossary:
     section_name: "Financial Terms"
     text: "Create a table with three columns: Term, Calculation, and Definition. On the Term column, the rows must be: EBITDA, Adjusted EBITDA, Compliance EBITDA, Company EBITDA, Adj. FCF (pre-WC), Non-levered Free Cash Flow, Discretionary FCF, Secured Debt, Total Debt, Committed Debt, Committed Leverage."
+    id: 2
+    system: true
 
   corporate_structure:
     section_name: "Corporate Structure"
     text: "Explain in half a page if the company has purchased or merged with other entities, where it is established. Then describe the type of debt that the company has. If issued in a foreign currency, please put in parentheses the figure in USD MM as well. If there have been any analyses on the company's debt made by S&P, Fitch or Moody's analysts, please write their conclusions."
+    id: 3
+    system: false
 
   financial_data:
     section_name: "Financial Data"
     text: "Provide a comprehensive table of the company's financial data for the past 10 years and the most recent available quarter. Include key metrics such as Revenue, Net Income, Total Debt, Cash and Equivalents, Equity, Total Assets, Intangibles and Goodwill, EBITDA, Free Cash Flow, and Working Capital. Additionally, calculate the following financial ratios: Intangibles/Equity, NFD/Equity, NFD/EBITDA, EBITDA/Financial Expenses, EBITDA/(CPLTD + Cap Leases + Financial Expenses). For each ratio, provide the methodology used for its calculation. If specific data points are unavailable, explicitly state that the information is not disclosed in public filings and explain why if possible. Include a summary of trends and key insights into the company's financial health, highlighting any strengths, weaknesses, or notable changes over the period analyzed."
+    id: 4
+    system: false
 
   historical_EBITDA_and_free_cash_flow_calculation:
     section_name: "EBITDA & Cash Flow"
     text: "In a table, share the EBITDA Calculation summary (Net Income, Interest Expense, Tax, Depreciation and amortization, Stock-based compensation, Loss on debt extinguishment, Loss on sale of RE assets, Impairment of assets, Loss from affiliates, Dividends from affiliates, EBITDA, Lease termination and int adj, Adjusted EBITDA, Cash taxes, Recurring capital expenditures, Renovations redevelopments and other improvements, Adj. FCF pre-WC, Change in NWC, Non-levered FCF, Cash Interest, Discretionary FCF, Dividends on common stock, Discretionary FCF after dividends) for the past 4 full years and the most recent quarter. Then, explain in half a page the conclusions on the company's free cash flow."
+    id: 5
+    system: false
 
   management_capacity_and_functionality_overview:
     section_name: "Business Operations"
     text: "Explain in depth all you can about the company's business, including all company segments. You can create tables with the evolution of sales of all different relevant segments, quarterly NOI. Give all relevant information found on how the company is operating. This is the most important section, be as thorough as possible."
+    id: 6
+    system: false
 
   ownership:
     section_name: "Shareholders"
     text: "Create a table of the shareholders who own 5% or more of all the company shares and create a table that has the following columns: Name, Number of shares owned, Percentage of ownership."
+    id: 7
+    system: false
 
   stock_performance:
     section_name: "Stock Performance"
     text: "Explain if the company is publicly listed, and if so, say where and what the most recent market cap is. Below, place a graph that shows its performance over the past 5 years and compare it to its top-2 competitors and against the S&P 500. Last but not least, briefly explain the company's stock performance."
+    id: 8
+    system: false
 
   management_team:
     section_name: "Leadership Team"
     text: "List and share a brief biography of the company's CEO, CIO, COO, CFO, and other key executives. Include any executive positions held both in the current and previous companies."
+    id: 9
+    system: false
 
   industry_overview:
     section_name: "Industry Overview"
     text: "Thoroughly explain how the industry in which the company operates has been performing. Share any graphs or tables that may be relevant and show the evolution of sales, profitability, openings, closures, or other relevant financial information."
+    id: 10
+    system: false
 
   competition:
     section_name: "Competitive Landscape"
     text: "Explain who the company's competitors are, briefly describe such competitors, and then create a table that compares all important financial data for the company and its top 4 competitors for the most recent reporting period available."
+    id: 11
+    system: false
 
   economic_and_financial_aspects:
     section_name: "Financial Analysis"
     text: "Share a table with all the company's relevant data on revenue, fixed charges, and balance sheet and their evolution for the past 10 years. Then explain below any important, interesting, or eye-catching observations. Explain in much more depth the recent financial performance with a year-on-year comparison against the last year, also the last quarter. Share as many tables as you find relevant on the financial performance of the company. This section should be able to explain perfectly what is going on and whether the company is doing well."
-x
+    id: 12
+    system: false
+
   analyst_ratings:
     section_name: "Analyst Ratings"
     text: "Share the most recent analyst ratings from top financial entities on the company. Summarize what they said and share when it was said and where the analyst works."
+    id: 13
+    system: false
 
   ratings_overview:
     section_name: "Credit Ratings"
     text: "Create a table with four columns: Rating Agency, Corporate Rating, Facility Rating, and Outlook. If available, it should include the latest rating from S&P, Moody's, and Fitch. Then, explain below what the full analysis of the rating agency says about the company."
+    id: 14
+    system: false
 
   conclusion:
     section_name: "Summary & Insights"
     text: "Summarize in bullets the strengths and weaknesses of the company. Financial performance is very important. For each of the weaknesses, explain the mitigating factors."
+    id: 15
+    system: false
+
+prompt_dag:
+  - 0->1->2
+  - 2->3->15
+  - 2->4->15
+  - 2->5->12->15
+  - 2->6->15
+  - 2->7->15
+  - 2->8->13->15
+  - 2->9->15
+  - 2->10->15
+  - 2->11->15
+  - 2->14->15
+
+
