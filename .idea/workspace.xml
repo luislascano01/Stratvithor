@@ -5,35 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a0aac8c8-fe75-405f-be9b-0686ecd8a0c2" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/ConfigLoader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/LLMAPIClient.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/LLMAdapter.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/LLMModelSelector.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/LLMQueryManagerAPI.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/LLMQueryProcessor.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/Logger.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/PriorityScheduler.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/QueryFormatter.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/RequestRouter.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/ResponseFormatter.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/ResponseValidator.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/RetryHandler.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/SchemaManager.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/TaskQueueManager.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/TaskTracker.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/UsageMonitor.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/Report_Compose/DataMolder.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Report_Compose/DataMolder.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/Report_Compose/DataQuerier.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Report_Compose/DataQuerier.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/Report_Compose/Integrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Report_Compose/Integrator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/Report_Compose/PromptManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Report_Compose/PromptManager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/Web_Search/GoogleSearchCaller.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Web_Search/GoogleSearchCaller.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/Web_Search/SearchIntegrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Web_Search/SearchIntegrator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CreditAnalysisPrompt_POC.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/CreditAnalysisPrompt_POC.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Prompts/prompts.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/Prompts/prompts.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SwiftCodeFetching.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/SwiftCodeFetching.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/~$UnknownSwiftCodes.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/~$updated_banks_with_swift_codes.xlsx" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -259,7 +232,7 @@
       <workItem from="1739737936634" duration="24000" />
       <workItem from="1739758653501" duration="620000" />
       <workItem from="1739890043789" duration="1018000" />
-      <workItem from="1739893463491" duration="18584000" />
+      <workItem from="1739893463491" duration="20209000" />
     </task>
     <servers />
   </component>
