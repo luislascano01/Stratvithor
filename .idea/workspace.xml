@@ -5,8 +5,219 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a0aac8c8-fe75-405f-be9b-0686ecd8a0c2" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontEnd/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontEnd/script.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FrontEnd/styles.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/ConfigLoader.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/ConfigLoader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/LLMAPIClient.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/LLMAPIClient.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/LLMAdapter.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/LLMAdapter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/LLMModelSelector.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/LLMModelSelector.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/LLMQueryManagerAPI.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/LLMQueryManagerAPI.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/LLMQueryProcessor.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/LLMQueryProcessor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/Logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/Logger.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/PriorityScheduler.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/PriorityScheduler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/QueryFormatter.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/QueryFormatter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/RequestRouter.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/RequestRouter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/ResponseFormatter.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/ResponseFormatter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/ResponseValidator.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/ResponseValidator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/RetryHandler.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/RetryHandler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/SchemaManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/SchemaManager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/TaskQueueManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/TaskQueueManager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/TaskTracker.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/TaskTracker.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/LLM_Query_Manager/UsageMonitor.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/LLM_Query_Manager/src/UsageMonitor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Report_Compose/DataMolder.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Report_Compose/src/DataMolder.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Report_Compose/DataQuerier.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Report_Compose/src/DataQuerier.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Report_Compose/Integrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Report_Compose/src/Integrator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Report_Compose/PromptManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Report_Compose/src/PromptManager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Report_Compose/RequestsMngrAPI.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Report_Compose/src/RequestsMngrAPI.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Report_Compose/TemplateManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Report_Compose/src/TemplateManager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Text_Process/webTextProcessing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Text_Process/src/webTextProcessing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Web_Search/BloombergCaller.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Web_Search/src/BloombergCaller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Web_Search/GoogleSearchCaller.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Web_Search/src/GoogleSearchCaller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Web_Search/HTMLArticleScrapper.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Web_Search/src/HTMLArticleScrapper.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Web_Search/QuerySynthesizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Web_Search/src/QuerySynthesizer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Web_Search/ResultsOrganizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Web_Search/src/ResultsOrganizer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Web_Search/SearchIntegrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Web_Search/src/SearchIntegrator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Web_Search/TestScrapper.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Web_Search/src/TestScrapper.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Web_Search/WebSearchAPI.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Web_Search/src/WebSearchAPI.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Web_Search/YFinanceCaller.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Web_Search/src/YFinanceCaller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CreditAnalysisPrompt_POC.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/CreditAnalysisGPT_POC.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Prospectiva_Inicial.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Prospectiva_Inicial.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/Documentation/Prospectiva_Inicial.pdf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Resultados Front Local_w_Internet.md" beforeDir="false" afterPath="$PROJECT_DIR$/Documentation/Resultados Front Local_w_Internet.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Resultados Front Local_w_Internet.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/Documentation/Resultados Front Local_w_Internet.pdf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SwiftCodeFetching.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/SwiftcodeScrapping/SwiftCodeFetching.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UnknownSwiftCodes.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/SwiftcodeScrapping/UnknownSwiftCodes.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/0PKvF36I7qvi.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/2q7HNRPKwswv.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/37DqjFkkAMmP.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/39NSqlJGNUkw.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/3SiKP7U66Dg3.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/3Vanm2fqLiip.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/3eT7oocEn8BN.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/40HLtrTgC2NC.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/4ubfes16X8z7.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/5wcI31O4mH1t.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/68GwLHk3kDUM.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/69uIWe2gA9n2.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/6Xu5yvFacuC7.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/7ARCz9EBddEF.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/7AdJADrhAx3F.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/7TNnIqNYXU8u.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/7c7lFqjYOMmJ.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/7cpKRwmVAR04.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/7wp4nJEopnEP.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/98E8DDdrPfNa.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/9GPhFIWzvIUz.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/9uHgXgHQiqAI.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/A0bRhvp4scF5.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/AHhZtoZD02vO.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/BAFKJ92xfs1m.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/BPUQR6P9kL6N.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/CDEtNCKJAIZY.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/DBr9iP1Ipt2g.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/DV85O9M1k71I.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/DmMxVicEi8fD.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/DrW7ZvtBVcZI.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/DrbtPM1BCqlj.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/E3KiJ5KVsxan.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/EbcHNWXuJQ4e.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/EnMTAheCwSHA.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/F6OlFKKWI10U.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/FFj7J9caz4YH.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/G47T8keOaLmO.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/GGSkvniCca2w.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/GrAwsKIaEeUo.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/H6f55Of2eSGO.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/HWxyWQpA7VVf.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/I8RHG40Ft5tg.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/I9fhLBkW7erJ.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/IMDxmmKr5Oyo.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/IzrHuweEqpmT.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/JATbfCQFvjnH.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/JSLHcQVCrX5B.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/JZ3aKiOT3Qmu.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/Ju0kIMIxp980.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/JxboCuSS42Iv.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/K85lW08DgzKU.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/LthAAG6n1BxV.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/Maf5Bj0JNryJ.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/Mc1YwdujEbnv.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/My24LxOgWoUT.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/N0ZbBu7qAWJS.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/N2nngWMEPzZd.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/N8gW8JN9XrBh.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/NSo6nQYrZHej.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/O8wyeTID0fgi.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/Oi69qMf49pAi.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/OnMZx2ssMdxf.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/PCERoKj0tcXW.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/Q1c4rjlNg3Qk.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/Q4rgQvWqmL9Q.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/QAbNx9Ex0wFL.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/QBMyLemFRa8D.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/QdY8gwRGPEK2.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/RG549Vtz4gLq.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/RY04feA1A5iJ.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/Rxs3xla9kclZ.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/S2A9zVwm7Juk.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/SQ1CPqt1v6lj.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/T2TsZVw6HcIl.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/T8hFVLwa5djs.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/U7jgeYTnGK4X.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/UYO6zmubB9n8.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/UZIrAz35aWuw.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/Uv7OMYWhMvn6.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/V9mN2MdFjqSZ.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/VX4yUOMK7ak4.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/VgQFOQagnEv4.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/VxCPquO2OnMH.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/Vzn9p0J9fnhJ.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/W2zBQerVfckg.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/W3ArfEkxi76F.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/Wk65ISOAKpCF.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/Wwr3oIXC3zP0.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/XTx62a47sO3F.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/XbuNqB8DWKiR.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/XwjQvvaxO9qC.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/Yzb6lWCjfsYI.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/Z2bxWuLoyQXe.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/ZIktFczgs5kQ.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/ZRD6yHxG7LkA.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/aaJlCCTylzMv.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/bH0K7LnhsFdp.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/cE0M1ngMGTIt.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/chvOwTeGoNex.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/ciRU5DPGxW2T.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/clmXWzalVkDf.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/cuq69SzQ8CZW.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/dbKbYHutYw4u.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/dr5wpcmqzXxM.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/dtsV9PJQN1hf.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/eAMMUgaf96x1.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/eHUm9QWVQqBo.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/eRCS0wbCvhya.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/eST52IxnF7fc.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/edzqgxi2eIft.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/f0OlOjKN1dkE.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/f5JjlsMjKYkB.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/g0w49ue9UyU2.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/gWKI2lcLMHf7.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/gxJpsCs3MvP3.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/hxX3HsDBRO6s.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/i2RkgaUVWifJ.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/i3epp0pofCAD.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/iOddkrdnsNKj.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/iSAuVhBGuRuT.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/iUyMfpi9IS4r.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/jT83uHeZe664.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/jwAGm9W7zv8V.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/kDdTolideR4L.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/kKw2G88FcOwa.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/lCjoXO4D3nKC.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/lhH15kXENMR2.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/m0AmnbVq77Zm.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/m7XUT0FtQVGH.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/mWiowsayrlKq.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/mvlvSUig2uwb.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/nS9ogYxJm27S.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/niriJfUTwzMN.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/oQe0a1RzHO54.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/owjg5cc0H5XE.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/pcggfPku0hRt.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/qMcCswyLSA9L.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/qSFiEzrG9aq0.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/r2t8Itqixhe7.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/r6VfOn724P2e.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/rIrkU5TQUt1I.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/rVXKl1GUz4rq.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/rjWytltjgmDO.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/sCbwdKcOG4Mc.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/sFoe5M8Ih614.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/sHEl7UX1ePL6.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/t5buwcv4mdD8.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/u09Td5Q7tUAU.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/uYyizmJuP3Z0.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/vBGDiorxQXop.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/vXjoFYHY8EGJ.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/vnQRDlHZ8rl6.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/wGpTeeqKe4it.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/xAeFMRTtqanz.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/y3GyEVEFikRM.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/yJtxrMTFg6NY.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/yNWOagpJjxHw.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/ySquKigY9bAh.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/yjEMIhGADtSM.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloaded_files/zM5PGpiD4e8h.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/jupyter" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/swift_codes.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/SwiftcodeScrapping/swift_codes.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/system_arch_diagram.png" beforeDir="false" afterPath="$PROJECT_DIR$/SystemDesign/system_arch_diagram.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/system_arch_diagram.puml" beforeDir="false" afterPath="$PROJECT_DIR$/SystemDesign/system_arch_diagram.puml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/updated_bank_swift_codes.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/SwiftcodeScrapping/updated_bank_swift_codes.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/updated_banks_with_swift_codes.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/SwiftcodeScrapping/updated_banks_with_swift_codes.xlsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -18,6 +229,9 @@
       <list>
         <option value="Jupyter Notebook" />
         <option value="Python Script" />
+        <option value="HTML File" />
+        <option value="JavaScript File" />
+        <option value="CSS File" />
       </list>
     </option>
   </component>
@@ -48,6 +262,8 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;JavaScript Debug.index.html.executor&quot;: &quot;Run&quot;,
     &quot;Python.GoogleSearchCaller.executor&quot;: &quot;Run&quot;,
     &quot;Python.HTMLArticleScrapper.executor&quot;: &quot;Run&quot;,
     &quot;Python.PromptManager.executor&quot;: &quot;Run&quot;,
@@ -57,6 +273,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;last_opened_file_path&quot;: &quot;/Users/luislascano01/Documents/Sabadell/CreditAnalysisGPT&quot;,
+    &quot;list.type.of.created.stylesheet&quot;: &quot;CSS&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -72,8 +289,11 @@
       <recent name="$PROJECT_DIR$" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/Backend/TextProcess" />
-      <recent name="$PROJECT_DIR$/Backend/WebSearch" />
+      <recent name="$PROJECT_DIR$/SystemDesign" />
+      <recent name="$PROJECT_DIR$/SwiftcodeScrapping" />
+      <recent name="$PROJECT_DIR$/Documentation" />
+      <recent name="$PROJECT_DIR$/Backend/Web_Search/src" />
+      <recent name="$PROJECT_DIR$/Backend/Text_Process/src" />
     </key>
   </component>
   <component name="RunManager" selected="Python.GoogleSearchCaller">
@@ -91,7 +311,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Web_Search/GoogleSearchCaller.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Web_Search/src/GoogleSearchCaller.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -114,7 +334,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Web_Search/HTMLArticleScrapper.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Web_Search/src/HTMLArticleScrapper.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -137,7 +357,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Report_Compose/PromptManager.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Report_Compose/src/PromptManager.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -160,7 +380,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Web_Search/QuerySynthesizer.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Web_Search/src/QuerySynthesizer.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -183,7 +403,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Web_Search/TestScrapper.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Backend/Web_Search/src/TestScrapper.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -232,7 +452,8 @@
       <workItem from="1739737936634" duration="24000" />
       <workItem from="1739758653501" duration="620000" />
       <workItem from="1739890043789" duration="1018000" />
-      <workItem from="1739893463491" duration="20209000" />
+      <workItem from="1739893463491" duration="21459000" />
+      <workItem from="1739975280483" duration="4585000" />
     </task>
     <servers />
   </component>

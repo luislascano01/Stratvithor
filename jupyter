@@ -1,2 +1,0 @@
-c.ServerApp.iopub_data_rate_limit = 10000000  # Increase the limit (10 MB/sec as an example)
-c.ServerApp.rate_limit_window = 10.0         # Increase the time window (10 seconds as an example)

@@ -1,4 +1,5 @@
-# CreditAnalysisGPT - AI-Powered Adaptive Report Generation
+# CreditAnalysisGPT 
+### An AI-Powered Adaptive Report Generator
 
 ## Overview
 
@@ -20,6 +21,9 @@ This report generation experience is akin to **walking through a dynamic knowled
 - **Integrator**: Implements the `generate_report` method, executing prompts in **topological order** according to the DAG. It processes queries, stores responses, and integrates results into a structured report.
 - **DataMolder**: Refines raw queried data by leveraging a **Text Processing microservice**, intersecting query responses with parent node context for contextual accuracy.
 - **Prompts**: Defines structured queries that guide report generation based on dependencies.
+
+![Architecture Diagram](SystemDesign/system_arch_diagram.png)
+
 
 ### Workflow
 

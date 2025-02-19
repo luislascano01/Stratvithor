@@ -1,2 +1,7 @@
 .idea*
-.gitigore
+downloadedfiles*
+downloaded_files*
+.gitignore
+.ipynb_checkpoints*
+SwiftcodeScrapping*
+
