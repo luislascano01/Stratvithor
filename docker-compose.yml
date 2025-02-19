@@ -1,0 +1,9 @@
+services:
+  web_server:
+    image: nginx:latest
+    container_name: webserver_nginx
+    ports:
+      - "5155:5155"
+    volumes:
+      - ./Frontend:/usr/share/nginx/html
+      - ./Webserver/nginx/nginx.conf:/etc/nginx/nginx.conf
