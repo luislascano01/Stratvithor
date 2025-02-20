@@ -119,7 +119,7 @@ class GoogleSearchCaller:
             data = resp.json()
             return data.get("items", [])  # Will be a list of dict
         except requests.RequestException as e:
-            logging.error(f"Error calling Google Custom Search: {e}", exc_info=True)
+            logging.error(f"Error calling Google Custom Search: {e}", exc_info=False)
             return []
 
     def google_search_with_parse(
@@ -194,7 +194,7 @@ class GoogleSearchCaller:
                     if data:
                         results.append(data)
                 except Exception as e:
-                    logging.error(f"Error processing {url}", exc_info=True)
+                    logging.error(f"Error processing {url}", exc_info=False)
         return results
 
     def _process_url(self, url: str) -> Optional[Dict]:
@@ -207,7 +207,7 @@ class GoogleSearchCaller:
                 result = self._handle_html(url)
             return result  # Will be None if processing failed
         except Exception as e:
-            logging.error(f"Error processing URL {url}", exc_info=True)
+            logging.error(f"Error processing URL {url}", exc_info=False)
             return None
 
     def _handle_pdf(self, url: str) -> Optional[Dict]:
@@ -240,7 +240,7 @@ class GoogleSearchCaller:
                     if extracted_tables:
                         tables.extend(extracted_tables)
         except Exception as e:
-            logging.error(f"PDF processing error for {url}", exc_info=True)
+            logging.error(f"PDF processing error for {url}", exc_info=False)
             return None
 
         main_content = self._extract_main_content(main_text) if main_text else None
@@ -269,7 +269,7 @@ class GoogleSearchCaller:
             response.raise_for_status()
             html_content = response.text
         except requests.RequestException as e:
-            logging.error(f"Request failed for {url}", exc_info=True)
+            logging.error(f"Request failed for {url}", exc_info=False)
             return None
 
         page_title, main_text = self._advanced_html_extraction(url, html_content)
@@ -320,7 +320,7 @@ class GoogleSearchCaller:
                             f.write(chunk)
             return str(filename)
         except requests.RequestException as e:
-            logging.error(f"Download failed for {url}", exc_info=True)
+            logging.error(f"Download failed for {url}", exc_info=False)
             return None
 
     def _extract_main_content(self, text: str) -> str:
@@ -364,7 +364,7 @@ class GoogleSearchCaller:
                 text = article.text.strip() if article.text else None
                 return (title, text)
             except Exception as e:
-                logging.warning(f"newspaper3k parsing failed: {url}", exc_info=True)
+                logging.warning(f"newspaper3k parsing failed: {url}", exc_info=False)
 
         if READABILITY_AVAILABLE:
             try:
@@ -376,7 +376,7 @@ class GoogleSearchCaller:
                 text = soup.get_text(separator="\n").strip()
                 return (title, text)
             except Exception as e:
-                logging.warning(f"readability-lxml parsing failed: {url}", exc_info=True)
+                logging.warning(f"readability-lxml parsing failed: {url}", exc_info=False)
 
         return (None, None)
 
@@ -403,8 +403,8 @@ if __name__ == "__main__":
     ]
 
     # Provide your Google API key and CSE ID
-    search_api_key = "YOUR_GOOGLE_API_KEY"
-    cse_id = "YOUR_CUSTOM_SEARCH_ID"
+    search_api_key = "AIzaSyB84u4teNOuRSr58MlCaHKLDeyMlXN4JV4"
+    cse_id = '25ea2aec2a0064008'
 
     # This method will:
     # 1) Build a combined query from base term + keywords
