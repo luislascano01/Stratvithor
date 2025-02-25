@@ -3,8 +3,6 @@ import requests
 from typing import List, Optional
 
 
-
-
 class QuerySynthesizer:
     """
     A class for generating search queries from an incoming prompt,
@@ -66,7 +64,7 @@ class QuerySynthesizer:
         system_instructions = (
             "You are a helpful assistant that generates Google search prompts. "
             "The user has asked a complex question. You need to produce exactly "
-            "five distinct search queries that would help the user find relevant information."
+            "six (6) distinct search queries that would help the user find relevant information."
             "Two (and only two) of those search prompts titles must contain: filetype:pdf\n\n"
             "IMPORTANT: Return your answer as valid JSON with the following structure:\n\n"
             "{\n"
@@ -75,13 +73,14 @@ class QuerySynthesizer:
             '    "Prompt 2",\n'
             '    "Prompt 3",\n'
             '    "Prompt 4",\n'
-            '    "Prompt 5"\n'
+            '    "Prompt 5",\n'
+            '    "Prompt 6"\n'
             "  ]\n"
             "}\n\n"
             "No additional keys should be present. Only return the JSON response"
         )
 
-        user_message = f"The user asked: '{incoming_prompt}'. Please propose three different Google search queries."
+        user_message = f"The user asked: '{incoming_prompt}'. Please propose six(6) different Google search queries."
 
         raw_response = self._call_llm(system_instructions, user_message)
         if not raw_response:
@@ -94,7 +93,7 @@ class QuerySynthesizer:
             data = json.loads(raw_response)
             search_prompts = data.get("search_prompts", [])
             search_prompts = [s.capitalize() for s in search_prompts]
-            return search_prompts[:5] if isinstance(search_prompts, list) else []
+            return search_prompts[:len(search_prompts)] if isinstance(search_prompts, list) else []
         except json.JSONDecodeError:
             print("Warning: Could not decode LLM response as JSON.")
             return [f"{incoming_prompt} (Fallback Query 1)",
@@ -105,13 +104,13 @@ class QuerySynthesizer:
 if __name__ == "__main__":
     llama_api_url = "http://localhost:11434/api/chat"  # Example OLLAMA endpoint
     synthesizer = QuerySynthesizer(llm_api_url=llama_api_url)
-    curr_company_name = "Sabadell"
-    # Test: Generating search promptsÏÏ
+    curr_company_name = "Meta"
+    # Test: Generating search prompts
     complex_prompt = (
         f"I need information about the financial status of {curr_company_name}."
         f" I'm interested in their debt leverage ratio, plus the their liquidity,"
         f" also cashflow, in general, I'm interested in the internal financial "
-        f"standing of the company. I'm looking for official formal information."
+        f"standing of the company. I'm looking for official formal information as I'm a Banking Lender building a credit report for lending decision."
     )
 
     prompts_list = synthesizer.generate_search_prompts(complex_prompt)

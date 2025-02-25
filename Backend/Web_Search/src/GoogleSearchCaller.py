@@ -9,6 +9,7 @@ import requests
 from pathlib import Path
 from typing import List, Dict, Optional, Union
 from urllib.parse import urlparse
+from Credentials.CredentialManager import CredentialManager
 
 from bs4 import BeautifulSoup
 
@@ -48,14 +49,16 @@ USER_AGENTS = [
 
 PROXIES = []
 
+
 class GoogleSearchCaller:
     def __init__(
-        self,
-        download_dir: str = "downloaded_files",
-        concurrency: int = 1,
-        min_delay: float = 0.5,
-        max_delay: float = 2.0,
-        use_proxies: bool = False,
+            self,
+            api_key: str,
+            download_dir: str = "downloaded_files",
+            concurrency: int = 2,
+            min_delay: float = 0.5,
+            max_delay: float = 2.0,
+            use_proxies: bool = False,
     ):
         """
         :param download_dir: Directory path to store downloaded PDF (or other) files.
@@ -70,6 +73,7 @@ class GoogleSearchCaller:
         self.min_delay = min_delay
         self.max_delay = max_delay
         self.use_proxies = use_proxies
+        self.api_key = api_key
 
         logging.basicConfig(
             level=logging.INFO,
@@ -90,11 +94,10 @@ class GoogleSearchCaller:
         return " OR ".join([f"{base_term} {kw}" for kw in keywords])
 
     def run_custom_search(
-        self,
-        query: str,
-        api_key: str,
-        cse_id: str,
-        num_results: int = 5
+            self,
+            query: str,
+            cse_id: str,
+            num_results: int = 5
     ) -> List[Dict[str, str]]:
         """
         Perform a Google Custom Search (CSE) and return the raw 'items' from the JSON response.
@@ -103,32 +106,47 @@ class GoogleSearchCaller:
         :param api_key: Google API key
         :param cse_id:  Google Custom Search Engine ID
         :param num_results: Number of results to fetch (max 10 if using free tier).
-        :return: A list of search result items (dictionaries with 'title', 'link', etc.)
+        :return: A list of search result items (dictionaries with 'title', 'url', 'snippet', and 'display_url')
         """
-        url = "https://www.googleapis.com/customsearch/v1"
+        api_url = "https://www.googleapis.com/customsearch/v1"
         params = {
             "q": query,
-            "key": api_key,
+            "key": self.api_key,
             "cx": cse_id,
             "num": num_results
         }
 
         try:
-            resp = requests.get(url, params=params, timeout=10)
+            resp = requests.get(api_url, params=params, timeout=10)
             resp.raise_for_status()
             data = resp.json()
-            return data.get("items", [])  # Will be a list of dict
+
+            items = data.get("items", [])
+
+            items_to_return = []
+
+            for item in items:
+                url = item.get("link", "")
+                display_url = item.get("displayLink", "")
+                snippet = item.get("snippet", "")
+                title = item.get("title", "")
+
+                new_entry = {"url": url, "display_url": display_url, "snippet": snippet, "title": title}
+                items_to_return.append(new_entry)
+
+            return items_to_return  # Will be a list of dict
         except requests.RequestException as e:
             logging.error(f"Error calling Google Custom Search: {e}", exc_info=False)
+            print("Error calling Google Custom Search")
             return []
 
     def google_search_with_parse(
-        self,
-        base_term: str,
-        keywords: List[str],
-        api_key: str,
-        cse_id: str,
-        num_results: int = 5
+            self,
+            base_term: str,
+            keywords: List[str],
+            api_key: str,
+            cse_id: str,
+            num_results: int = 5
     ) -> List[Dict]:
         """
         1) Build the query from 'base_term' + 'keywords'.
@@ -336,7 +354,7 @@ class GoogleSearchCaller:
             return text[:3000]
         start_index = matches[0]
         chunk_length = 5000
-        main_excerpt = text[start_index : start_index + chunk_length]
+        main_excerpt = text[start_index: start_index + chunk_length]
         return main_excerpt
 
     def _extract_html_tables(self, soup: BeautifulSoup) -> List[List[List[str]]]:
@@ -380,11 +398,19 @@ class GoogleSearchCaller:
 
         return (None, None)
 
+
 # ----------------------------------------------------------------------
 # Example usage:
 # ----------------------------------------------------------------------
 if __name__ == "__main__":
+
+    myCredentialManager = CredentialManager(
+        "/Users/luislascano01/Documents/Sabadell/Stratvithor/Credentials/Credentials.yaml")
+
+    search_api_key = myCredentialManager.get_credential("API_Keys", "Google_Cloud")
+
     gsc = GoogleSearchCaller(
+        search_api_key,
         download_dir="files",
         concurrency=2,
         min_delay=1.0,
@@ -392,37 +418,26 @@ if __name__ == "__main__":
         use_proxies=False
     )
 
-    # Suppose we want to look up 'Tesla' with some financial keywords:
-    base_company_name = "Tesla"
-    financial_keywords = [
-        "financial statements",
-        "quarterly earnings",
-        "annual report",
-        "SEC filings",
-        "Annual Report 2024"
-    ]
 
-    # Provide your Google API key and CSE ID
-    search_api_key = "AIzaSyB84u4teNOuRSr58MlCaHKLDeyMlXN4JV4"
-    cse_id = '25ea2aec2a0064008'
+    cse_id = myCredentialManager.get_credential("Online_Tool_ID", "Custom_G_Search")
+
+    ###########
 
     # This method will:
     # 1) Build a combined query from base term + keywords
     # 2) Call Google Custom Search
     # 3) Parse the returned URLs for content
-    parse_results = gsc.google_search_with_parse(
-        base_term=base_company_name,
-        keywords=financial_keywords,
-        api_key=search_api_key,
+    parse_results = gsc.run_custom_search(
+        "Meta official investor relations website financial data",
         cse_id=cse_id,
         num_results=5
     )
 
     # Print summarized results
     for idx, res in enumerate(parse_results, start=1):
-        title = res.get("Title_Header", "No Title")
-        url = res.get("URL", "No URL")
-        content_snippet = (res.get("Main_Content") or "")[:250].replace("\n", " ")
+        title = res.get("title", "No Title")
+        url = res.get("url", "No URL")
+        content_snippet = res.get("snippet", "No Content")
         print(f"\n---- Result {idx} ----")
         print(f"Title: {title}")
         print(f"URL: {url}")
