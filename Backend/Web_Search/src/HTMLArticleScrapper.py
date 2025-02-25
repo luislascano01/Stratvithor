@@ -7,6 +7,8 @@ import requests
 from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer, util
 
+from Backend.Web_Search.src.PaywallUnblocker import PaywallUnblocker
+
 # A small list of user agents for demonstration.
 # In reality, you might have a larger pool or load from an external file.
 USER_AGENTS = [
@@ -70,31 +72,41 @@ class HTMLArticleScrapper:
 
     def _fetch_html_stealthily(self, url: str, max_retries: int = 3) -> Optional[str]:
         """
-        Fetch the HTML content from a URL with basic stealth:
-          - Random User-Agent
-          - Random short delay
-          - Optional retries if the request fails
-        Returns the HTML content as a string, or None if all attempts fail.
+        Attempt to fetch HTML content via a normal HTTP GET request with stealthy headers.
+        If the request fails or the returned HTML is very short (indicating a possible paywall),
+        fall back to using the PaywallUnblocker.unblock_url method.
+
+        :param url: The URL to fetch.
+        :param max_retries: Number of attempts to try the HTTP GET request.
+        :return: The HTML content as a string, or None if both methods fail.
         """
         for attempt in range(max_retries):
             try:
-                # Random delay (you could refine or randomize further)
+                # Wait a random short delay
                 time.sleep(random.uniform(1.0, 3.0))
-
-                # Randomly pick a User-Agent
                 headers = {
                     "User-Agent": random.choice(USER_AGENTS),
                     "Accept-Language": "en-US,en;q=0.9",
                 }
                 response = requests.get(url, headers=headers, timeout=10)
                 response.raise_for_status()
-                return response.text  # Successfully got the page
+                html = response.text
+                # Check if the returned HTML seems too short (could be a paywall)
+                if len(html.strip()) < 500:
+                    logging.warning(
+                        f"[Attempt {attempt + 1}/{max_retries}] HTML too short (length {len(html.strip())}); might be paywalled."
+                    )
+                    continue
+                return html
             except requests.RequestException as e:
                 logging.warning(f"[Attempt {attempt + 1}/{max_retries}] Failed to fetch {url}: {e}")
-                # Optionally implement backoff or handle HTTP codes differently
 
-        logging.error(f"Failed to fetch {url} after {max_retries} attempts.")
-        return None
+        logging.error(f"Failed to fetch {url} via normal HTTP after {max_retries} attempts.")
+        logging.info("Falling back to PaywallUnblocker method.")
+
+        # Use the PaywallUnblocker class as a backoff mechanism.
+        fallback_unblocker = PaywallUnblocker(wait_time=13)  # Use desired defaults
+        return fallback_unblocker.unblock_url(url)
 
     def process_resource(self, url: str) -> str:
         """
@@ -184,6 +196,7 @@ class HTMLArticleScrapper:
         1) Embed each block and compute similarity with the prompts.
         2) Retain blocks above self.similarity_threshold (using the higher of the two prompt similarities).
         3) Keep some neighbors for continuity.
+        4) Remove redundant lines (those sharing a repeated sequence of 6 consecutive words).
         """
         if not text_blocks:
             return ""
@@ -196,8 +209,7 @@ class HTMLArticleScrapper:
         sim_partic = util.cos_sim(block_embeddings, self.particular_prompt_emb).squeeze(dim=1)
 
         # Give 10% more weight to particular prompt
-        # (You can think of this as: final_score = sim_general + 1.1 * sim_partic)
-        similarities = sim_general + 1.1 * sim_partic
+        similarities = sim_general + 3 * sim_partic
 
         # Now apply the threshold check
         relevant_indices = [
@@ -205,7 +217,6 @@ class HTMLArticleScrapper:
             if score.item() >= self.similarity_threshold
         ]
         if not relevant_indices:
-            # No relevant blocks
             return ""
 
         # Keep neighbors for continuity
@@ -221,20 +232,64 @@ class HTMLArticleScrapper:
         # Build final text, preserving order
         kept_blocks = [text_blocks[i] for i in sorted(keep_indices)]
         main_article = "\n\n".join(kept_blocks)
+
+        # Remove redundant lines that share 6 consecutive words
+        main_article = self.remove_redundant_lines(main_article, n=6)
         return main_article
+
+    def remove_redundant_lines(self, text: str, n = 6) -> str:
+        """
+        Remove lines that contain any n-gram (default: 6 consecutive words)
+        that has already appeared in previously accepted lines.
+
+        :param text: The full article text (with newlines).
+        :param n: The number of consecutive words to consider as a fingerprint.
+        :return: Cleaned text with duplicate lines removed.
+        """
+        seen_ngrams = set()
+        filtered_lines = []
+
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            words = line.split()
+            # For short lines, simply check if the line is already in the output.
+            if len(words) < n:
+                if line in filtered_lines:
+                    continue
+                else:
+                    filtered_lines.append(line)
+                    continue
+
+            # Compute all n-grams from this line.
+            ngrams = {" ".join(words[i:i + n]) for i in range(len(words) - n + 1)}
+
+            # If any n-gram in this line was seen before, skip the line.
+            if any(ng in seen_ngrams for ng in ngrams):
+                continue
+
+            # Otherwise, add these n-grams to the seen set and keep the line.
+            seen_ngrams.update(ngrams)
+            filtered_lines.append(line)
+
+        return "\n".join(filtered_lines)
 
 
 # Example usage:
 if __name__ == "__main__":
     scrapper = HTMLArticleScrapper(
-        general_prompt="I want to know EBIDTA and Performance indices of the company.",
-        particular_prompt="Well Tower Inc.",
+        general_prompt="Trump",
+        particular_prompt="Mexico Crisis",
         model_name="sentence-transformers/all-MiniLM-L6-v2",
         similarity_threshold=0.45,
         continuity_window=1
     )
     # Replace with any URL that you want to scrape
-    url = "https://www.macrotrends.net/stocks/charts/WELL/Welltower/ebitda"
+    url = (
+        "https://www.bloomberg.com/news/articles/2025-02-24/"
+        "trump-says-tariffs-on-mexico-canada-going-forward-next-month"
+    )
     article_text = scrapper.process_resource(url)
     print("===== EXTRACTED ARTICLE =====")
     print(article_text)
