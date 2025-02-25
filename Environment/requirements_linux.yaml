@@ -4,19 +4,21 @@ channels:
   - nvidia
   - conda-forge
   - defaults
-  - https://repo.anaconda.com/pkgs/main
-  - https://repo.anaconda.com/pkgs/r
 dependencies:
+  - _libgcc_mutex=0.1
+  - _openmp_mutex=5.1
   - aiohappyeyeballs=2.4.6
   - aiohttp=3.11.12
   - aiosignal=1.3.2
-  # Removed appnope (macOS-only)
+  - annotated-types=0.7.0
+  - anyio=4.8.0
   - argon2-cffi=21.3.0
   - argon2-cffi-bindings=21.2.0
+  - arrow=1.3.0
   - arrow-cpp=19.0.0
   - asciitree=0.3.3
   - asttokens=2.0.5
-  - async-lru=2.0.4        # <-- fixed typo
+  - async-lru=2.0.4
   - async-timeout=5.0.1
   - attrs=24.3.0
   - aws-c-auth=0.6.21
@@ -33,6 +35,8 @@ dependencies:
   - aws-crt-cpp=0.18.16
   - aws-sdk-cpp=1.11.212
   - babel=2.11.0
+  - backports=1.0
+  - backports.functools_lru_cache=2.0.0
   - beautifulsoup4=4.12.3
   - blas=1.0
   - bleach=6.2.0
@@ -42,19 +46,38 @@ dependencies:
   - bzip2=1.0.8
   - c-ares=1.34.4
   - ca-certificates=2025.1.31
+  - cached-property=1.5.2
+  - cached_property=1.5.2
   - certifi=2025.1.31
   - cffi=1.17.1
   - charset-normalizer=3.3.2
+  - click=8.1.8
   - colorama=0.4.6
   - comm=0.2.1
+  - cuda-cudart=12.4.127
+  - cuda-cupti=12.4.127
+  - cuda-libraries=12.4.1
+  - cuda-nvrtc=12.4.127
+  - cuda-nvtx=12.4.127
+  - cuda-opencl=12.8.55
+  - cuda-runtime=12.4.1
+  - cuda-version=12.8
   - datasets=2.14.4
   - debugpy=1.8.11
   - decorator=5.1.1
   - defusedxml=0.7.1
   - dill=0.3.7
+  - dnspython=2.7.0
+  - email-validator=2.2.0
+  - email_validator=2.2.0
+  - entrypoints=0.4
+  - exceptiongroup=1.2.2
   - executing=0.8.3
   - fastapi=0.112.2
+  - fastapi-cli=0.0.7
   - filelock=3.13.1
+  - flit-core=3.11.0
+  - fqdn=1.5.1
   - freetype=2.12.1
   - frozenlist=1.5.0
   - fsspec=2025.2.0
@@ -64,18 +87,30 @@ dependencies:
   - gmp=6.3.0
   - gmpy2=2.2.1
   - h11=0.14.0
+  - h2=4.2.0
+  - hpack=4.1.0
+  - httpcore=1.0.7
+  - httptools=0.6.4
+  - httpx=0.28.1
   - huggingface_hub=0.28.0
+  - hyperframe=6.1.0
   - icu=70.1
+  - idna=3.10
   - importlib-metadata=8.6.1
+  - importlib_metadata=8.6.1
+  - importlib_resources=6.5.2
   - ipykernel=6.29.5
   - ipython=8.30.0
+  - isoduration=20.11.0
   - jedi=0.19.2
   - jinja2=3.1.4
   - joblib=1.4.2
   - jpeg=9e
   - json5=0.9.25
+  - jsonpointer=3.0.0
   - jsonschema=4.23.0
   - jsonschema-specifications=2023.7.1
+  - jsonschema-with-format-nongpl=4.23.0
   - jupyter-lsp=2.2.0
   - jupyter_client=8.6.0
   - jupyter_core=5.7.2
@@ -85,38 +120,64 @@ dependencies:
   - jupyterlab=4.2.5
   - jupyterlab_pygments=0.1.2
   - jupyterlab_server=2.27.3
+  - keyutils=1.6.1
   - krb5=1.20.1
   - lcms2=2.16
+  - ld_impl_linux-64=2.43
   - lerc=4.0.0
+  - levenshtein=0.26.1
   - libabseil=20240116.2
   - libbrotlicommon=1.0.9
   - libbrotlidec=1.0.9
   - libbrotlienc=1.0.9
+  - libcublas=12.4.5.8
+  - libcufft=11.2.1.3
+  - libcufile=1.13.0.11
+  - libcurand=10.3.9.55
   - libcurl=8.12.0
+  - libcusolver=11.6.1.9
+  - libcusparse=12.3.1.170
   - libcxx=14.0.6
+  - libcxxabi=14.0.6
   - libdeflate=1.22
   - libedit=3.1.20191231
   - libev=4.33
   - libevent=2.1.12
   - libffi=3.4.4
-  # Removed libgfortran=5.0.0 (doesn't exist on Linux)
+  - libgcc=14.2.0
+  - libgcc-ng=14.2.0
+  - libgfortran-ng=11.3.0
   - libgfortran5=11.3.0
+  - libgomp=14.2.0
   - libgrpc=1.62.2
   - libjpeg-turbo=2.0.0
   - libnghttp2=1.57.0
+  - libnpp=12.2.5.30
+  - libnvfatbin=12.8.55
+  - libnvjitlink=12.4.127
+  - libnvjpeg=12.3.1.117
   - libopenblas=0.3.21
   - libpng=1.6.39
   - libprotobuf=4.25.3
+  - libsentencepiece=0.2.0
   - libsodium=1.0.18
+  - libsqlite=3.45.3
   - libssh2=1.11.1
+  - libstdcxx=14.2.0
+  - libstdcxx-ng=14.2.0
   - libthrift=0.15.0
   - libtiff=4.5.1
+  - libuuid=1.41.5
+  - libuv=1.50.0
   - libwebp=1.3.2
   - libwebp-base=1.3.2
+  - libzlib=1.2.13
   - llvm-openmp=14.0.6
   - lz4-c=1.9.4
+  - markdown-it-py=3.0.0
   - markupsafe=2.1.3
   - matplotlib-inline=0.1.6
+  - mdurl=0.1.2
   - mistune=2.0.4
   - mpc=1.3.1
   - mpfr=4.2.1
@@ -125,25 +186,33 @@ dependencies:
   - multiprocess=0.70.15
   - nbclient=0.8.0
   - nbconvert=7.16.4
+  - nbconvert-core=7.16.4
+  - nbconvert-pandoc=7.16.4
   - nbformat=5.10.4
-  - ncurses=6.4
+  - ncurses=6.4.20240210
   - nest-asyncio=1.6.0
   - networkx=3.4.2
+  - nomkl=1.0
   - notebook=7.2.2
   - notebook-shim=0.2.3
   - numexpr=2.10.1
-  - numpy-base=2.0.1
+  - ocl-icd=2.3.2
+  - openblas=0.3.21
+  - opencl-headers=2024.10.24
   - openjpeg=2.5.2
   - openssl=3.4.1
   - orc=2.0.1
   - overrides=7.4.0
   - packaging=24.2
   - pandas=2.2.3
+  - pandoc=3.6.3
   - pandocfilters=1.5.0
   - parso=0.8.4
   - pexpect=4.8.0
+  - pickleshare=0.7.5
   - pillow=11.1.0
   - pip=24.2
+  - pkgutil-resolve-name=1.3.10
   - platformdirs=3.10.0
   - prometheus_client=0.21.0
   - prompt-toolkit=3.0.43
@@ -154,17 +223,19 @@ dependencies:
   - pure_eval=0.2.2
   - pyarrow=19.0.0
   - pycparser=2.21
+  - pydantic-core=2.27.2
   - pygments=2.15.1
   - pysocks=1.7.1
   - python=3.11.11
   - python-dateutil=2.9.0post0
+  - python-dotenv=1.0.1
   - python-fastjsonschema=2.20.0
   - python-json-logger=3.2.1
+  - python-levenshtein=0.26.1
+  - python-multipart=0.0.20
   - python-tzdata=2025.1
   - python-xxhash=3.5.0
-  - pytorch    # or "py311_cuda12.4*" if that’s how the build is named
-  - torchvision=0.20.1=py311_cu124*
-  - torchaudio=2.5.1=py311_cu124*
+  - python_abi=3.11
   - pytorch-cuda=12.4
   - pytz=2024.1
   - pyyaml=6.0.2
@@ -177,15 +248,22 @@ dependencies:
   - requests=2.32.3
   - rfc3339-validator=0.1.4
   - rfc3986-validator=0.1.1
+  - rich=13.9.4
+  - rich-toolkit=0.11.3
   - rpds-py=0.22.3
+  - s2n=1.3.30
   - safetensors=0.4.5
   - scikit-learn=1.6.1
   - scipy=1.15.1
   - send2trash=1.8.2
-  - sentence-transformers=3.4.1
+  - sentencepiece=0.2.0
+  - sentencepiece-python=0.2.0
+  - sentencepiece-spm=0.2.0
   - setuptools=75.1.0
+  - shellingham=1.5.4
   - six=1.16.0
   - snappy=1.1.10
+  - sniffio=1.3.1
   - soupsieve=2.5
   - sqlite=3.45.3
   - stack_data=0.2.0
@@ -196,18 +274,31 @@ dependencies:
   - tinycss2=1.2.1
   - tk=8.6.14
   - tokenizers=0.20.1
+  - tomli=2.2.1
   - tornado=6.4.2
   - tqdm=4.67.1
   - traitlets=5.14.3
   - transformers=4.46.3
+  - typer=0.15.1
+  - typer-slim=0.15.1
+  - typer-slim-standard=0.15.1
+  - types-python-dateutil=2.9.0.20241206
   - typing-extensions=4.12.2
   - typing_extensions=4.12.2
+  - typing_utils=0.1.0
   - tzdata=2024b
+  - uri-template=1.3.0
   - urllib3=2.2.3
   - utf8proc=2.6.1
+  - uvicorn=0.34.0
+  - uvicorn-standard=0.34.0
+  - uvloop=0.21.0
+  - watchfiles=1.0.4
   - wcwidth=0.2.5
+  - webcolors=24.11.1
   - webencodings=0.5.1
   - websocket-client=1.8.0
+  - websockets=15.0
   - wheel=0.44.0
   - xxhash=0.8.0
   - xz=5.4.6
@@ -216,13 +307,11 @@ dependencies:
   - zeromq=4.3.5
   - zipp=3.21.0
   - zlib=1.2.13
+  - zstandard=0.23.0
   - zstd=1.5.6
   - pip:
-      - annotated-types==0.7.0
-      - anyio==4.8.0
       - automat==24.8.1
       - chardet==5.2.0
-      - click==8.1.8
       - constantly==23.10.4
       - cryptography==44.0.1
       - cssselect==1.2.0
@@ -233,21 +322,30 @@ dependencies:
       - funcsigs==1.0.2
       - future==1.0.0
       - html5lib==1.1
-      - httpcore==1.0.7
-      - httpx==0.28.1
       - hyperlink==21.0.0
-      - idna==3.10
       - incremental==24.7.2
       - itemadapter==0.11.0
       - itemloaders==1.3.2
       - jiter==0.8.2
       - jmespath==1.0.1
       - latex==0.7.0
-      - levenshtein==0.26.1
       - lxml==5.3.0
       - multitasking==0.0.11
       - nltk==3.9.1
       - numpy==2.2.2
+      - nvidia-cublas-cu12==12.4.5.8
+      - nvidia-cuda-cupti-cu12==12.4.127
+      - nvidia-cuda-nvrtc-cu12==12.4.127
+      - nvidia-cuda-runtime-cu12==12.4.127
+      - nvidia-cudnn-cu12==9.1.0.70
+      - nvidia-cufft-cu12==11.2.1.3
+      - nvidia-curand-cu12==10.3.5.147
+      - nvidia-cusolver-cu12==11.6.1.9
+      - nvidia-cusparse-cu12==12.3.1.170
+      - nvidia-cusparselt-cu12==0.6.2
+      - nvidia-nccl-cu12==2.21.5
+      - nvidia-nvjitlink-cu12==12.4.127
+      - nvidia-nvtx-cu12==12.4.127
       - openai==1.59.7
       - openpyxl==3.1.5
       - parsel==1.10.0
@@ -259,29 +357,27 @@ dependencies:
       - pyasn1==0.6.1
       - pyasn1-modules==0.4.1
       - pydantic==2.10.5
-      - pydantic-core==2.27.2
       - pydispatcher==2.0.7
       - pymupdf==1.25.2
       - pyopenssl==25.0.0
       - pypdf2==3.0.1
       - pypdfium2==4.30.1
-      - python-levenshtein==0.26.1
       - queuelib==1.7.0
       - readability-lxml==0.8.1
       - requests-file==2.1.0
       - scrapy==2.12.0
-      - sentencepiece==0.2.0
+      - sentence-transformers==3.4.1
       - service-identity==24.2.0
       - shutilwhich==1.1.0
-      - sniffio==1.3.1
       - sympy==1.13.1
       - tempdir==0.7.1
       - tenacity==9.0.0
       - tldextract==5.1.3
+      - torch==2.6.0
+      - torchaudio==2.6.0
+      - torchvision==0.21.0
+      - triton==3.2.0
       - twisted==24.11.0
-      - uvicorn==0.34.0
       - w3lib==2.3.1
       - yfinance==0.2.52
       - zope-interface==7.2
-# You can omit or change the prefix below, or let Conda create its own path:
-prefix: /Users/luislascano01/miniconda3/envs/CreditAnalysisGPT
