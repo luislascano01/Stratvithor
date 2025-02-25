@@ -352,8 +352,8 @@ class PDFScrapper:
 if __name__ == "__main__":
     # For demonstration, we ask about sustainability and Google Deepmind
     scrapper = PDFScrapper(
-        general_prompt="What sustainable practices is this company performing?",
-        particular_prompt="Google Deepmind",
+        general_prompt="What can you tell me about Nvidia's consumer GPU market?",
+        particular_prompt="RTX4090, Consumer GPU, Gaming ",
         model_name="sentence-transformers/all-MiniLM-L6-v2",
         similarity_threshold=0.35,
         continuity_window=1,
@@ -363,7 +363,7 @@ if __name__ == "__main__":
         # Use Flan-T5-Small as a local LLM for keyword extraction
         keyword_llm_model="google/flan-t5-small"
     )
-    url = "https://www.smartenergydecisions.com/upload/research_+_reports/google-2024-environmental-report.pdf"
+    url = "https://nvidianews.nvidia.com/_gallery/download_pdf/646e7438a1383555093ab633/"
     result = scrapper.process_resource(url)
     print("===== SCRAPED & SUMMARIZED PDF CONTENT =====")
     print(result)
