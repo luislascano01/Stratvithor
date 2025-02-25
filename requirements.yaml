@@ -1,4 +1,4 @@
-name: CreditAnalysisGPT
+name: StrvthrEnv
 channels:
   - pytorch-nightly
   - conda-forge
