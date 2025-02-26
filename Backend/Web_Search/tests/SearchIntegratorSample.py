@@ -41,9 +41,13 @@ def main():
 
     # Set up a CredentialManager.
     # (Assuming you have a credentials.yaml file with appropriate keys.)
-    cred_mngr = CredentialManager(
-        "/home/luislascano01/Documents/BS_Projects/Stratvithor/Credentials/Credentials.yaml"
-    )
+
+    # Assuming CredentialManager is defined/imported in your project.
+
+    llama_url = "http://localhost:11434/api/chat"
+
+    # Set up a CredentialManager with a relative path from the project's base directory.
+    cred_mngr = CredentialManager("./Credentials/Credentials.yaml")
 
     # Define an operating directory (where any output files will be stored)
     operating_path = "./output"

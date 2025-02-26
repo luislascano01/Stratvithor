@@ -76,6 +76,9 @@ class SearchIntegrator:
         query_synth = QuerySynthesizer(llm_api_url)
         conjugated_search_prompt = self.get_composed_prompt()
         search_prompts = query_synth.generate_search_prompts(conjugated_search_prompt)
+        print(f"Search prompts:\n")
+        for i, search_prompt in enumerate(search_prompts):
+             print(f'{i+1}. {search_prompt}')
 
         web_scrapper = HTMLArticleScrapper(self.general_prompt, self.particular_prompt)
         pdf_scrapper = PDFScrapper(self.general_prompt, self.particular_prompt)
