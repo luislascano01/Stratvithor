@@ -44,9 +44,12 @@ class QuerySynthesizer:
             data = response.json()
             print("Raw LLM Response:", data)  # Debugging line, remove after confirming
 
+
             # OLLAMA returns response under 'message' -> 'content'
             if "message" in data and "content" in data["message"]:
-                return data["message"]["content"].strip()
+                message_response = data["message"]["content"].strip()
+                print("Message Response GSrch Query Synth:", message_response)
+                return message_response
 
             return None  # Return None if no valid response found
 
