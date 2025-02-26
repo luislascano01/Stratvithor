@@ -1,5 +1,6 @@
 import json
 import requests
+import re  # New import for regex
 from typing import List, Optional
 
 
@@ -21,7 +22,6 @@ class QuerySynthesizer:
         """
         Internal method responsible for making the actual HTTP request to the LLM.
         Waits for a complete response and ensures it's fully received.
-
         :param system_message: System instructions for the LLM.
         :param user_prompt: The main content of the request.
         :return: The complete text response from the LLM or None if something went wrong.
@@ -44,12 +44,20 @@ class QuerySynthesizer:
             data = response.json()
             print("Raw LLM Response:", data)  # Debugging line, remove after confirming
 
-
             # OLLAMA returns response under 'message' -> 'content'
             if "message" in data and "content" in data["message"]:
                 message_response = data["message"]["content"].strip()
                 print("Message Response GSrch Query Synth:", message_response)
-                return message_response
+
+                # Extract JSON content from the markdown block
+                json_match = re.search(r'```json\s*([\s\S]*?)\s*```', message_response, re.DOTALL)
+                if json_match:
+                    json_content = json_match.group(1)
+                    print("Extracted JSON content:", json_content)
+                    return json_content
+                else:
+                    print("No markdown formatting detected; returning raw message.")
+                    return message_response
 
             return None  # Return None if no valid response found
 
@@ -60,7 +68,6 @@ class QuerySynthesizer:
     def generate_search_prompts(self, incoming_prompt: str) -> List[str]:
         """
         Generates three recommended Google search queries based on a complex user prompt.
-
         :param incoming_prompt: The user's initial question or problem statement.
         :return: A list of three search prompts.
         """
@@ -96,7 +103,7 @@ class QuerySynthesizer:
             data = json.loads(raw_response)
             search_prompts = data.get("search_prompts", [])
             search_prompts = [s.capitalize() for s in search_prompts]
-            return search_prompts[:len(search_prompts)] if isinstance(search_prompts, list) else []
+            return search_prompts
         except json.JSONDecodeError:
             print("Warning: Could not decode LLM response as JSON.")
             return [f"{incoming_prompt} (Fallback Query 1)",
