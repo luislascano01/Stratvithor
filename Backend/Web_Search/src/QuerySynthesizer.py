@@ -27,7 +27,7 @@ class QuerySynthesizer:
         :return: The complete text response from the LLM or None if something went wrong.
         """
         payload = {
-            "model": "llama3.3:latest",  # Ensure this is the correct model name
+            "model": "gemma2:27b",  # Ensure this is the correct model name
             "messages": [
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_prompt},

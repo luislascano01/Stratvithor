@@ -42,7 +42,7 @@ def main():
     # Set up a CredentialManager.
     # (Assuming you have a credentials.yaml file with appropriate keys.)
     cred_mngr = CredentialManager(
-        "/Users/luislascano01/Documents/Sabadell/Stratvithor/Credentials/Credentials.yaml"
+        "/home/luislascano01/Documents/BS_Projects/Stratvithor/Credentials/Credentials.yaml"
     )
 
     # Define an operating directory (where any output files will be stored)
@@ -50,8 +50,8 @@ def main():
 
     # Instantiate the SearchIntegrator with your prompts and credentials.
     search_integrator = SearchIntegrator(
-        general_prompt="Financial Performance",
-        particular_prompt="National Cash Registry (NCR Company)",
+        general_prompt="Financial Performance and EBIDTA, CASHFLOW",
+        particular_prompt="NCR Company",
         cred_mngr=cred_mngr,
         operating_path=operating_path
     )
