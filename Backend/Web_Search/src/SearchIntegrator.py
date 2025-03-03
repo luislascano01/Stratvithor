@@ -130,13 +130,14 @@ class SearchIntegrator:
 
         return processed_resources
 
-    def get_web_articles_from_prompts(self, cse_id: str, search_prompts: List[str]) -> List[Dict[str, str]]:
+    def get_web_articles_from_prompts(self, cse_id: str, search_prompts: List[str], num_results=7) -> List[Dict[str, str]]:
         """
         Processes each search prompt concurrently and aggregates the results into one list.
         Duplicate URLs (based on 'url' field) are removed.
 
         :param cse_id: Custom Search Engine ID.
         :param search_prompts: List of search prompts generated from the composed query.
+        :param num_results: Number of results to return.
         :return: Aggregated list of search result dictionaries.
         """
         url_set = set()  # For fast duplicate checking
@@ -145,7 +146,7 @@ class SearchIntegrator:
         def worker(prompt: str) -> List[Dict[str, str]]:
             # Create a new instance per thread to avoid potential thread-safety issues.
             g_searcher = GoogleSearchCaller(self.g_api_key, self.operating_dir_path)
-            return g_searcher.run_custom_search(prompt, cse_id, num_results=3)
+            return g_searcher.run_custom_search(prompt, cse_id, num_results)
 
         # Use a ThreadPoolExecutor to run each prompt concurrently.
         with ThreadPoolExecutor(max_workers=len(search_prompts)) as executor:
