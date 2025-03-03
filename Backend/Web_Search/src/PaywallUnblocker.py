@@ -178,8 +178,7 @@ class PaywallUnblocker:
 # Example usage:
 if __name__ == "__main__":
     test_url = (
-        "https://www.bloomberg.com/news/articles/2025-02-24/"
-        "trump-says-tariffs-on-mexico-canada-going-forward-next-month"
+        "https://www.investors.com/news/technology/oracle-stock-earnings-preview-stargate-ai-deepseek/"
     )
     unblocker = PaywallUnblocker(
         similarity_threshold=0.45,

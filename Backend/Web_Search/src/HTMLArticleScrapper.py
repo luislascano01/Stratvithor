@@ -1,3 +1,4 @@
+import re
 import random
 import time
 import logging
@@ -10,7 +11,6 @@ from sentence_transformers import SentenceTransformer, util
 from Backend.Web_Search.src.PaywallUnblocker import PaywallUnblocker
 
 # A small list of user agents for demonstration.
-# In reality, you might have a larger pool or load from an external file.
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
@@ -27,7 +27,9 @@ class HTMLArticleScrapper:
       2) Removes boilerplate tags,
       3) Extracts text blocks from <p>, <div>, and <table> elements,
       4) Uses sentence-transformer embeddings to filter out irrelevant text
-         based on two prompts (general and particular).
+         based on two prompts (general and particular),
+      5) Cleans up the final text by removing special characters, empty lines,
+         and lines with < 3 words.
     """
 
     def __init__(
@@ -38,13 +40,6 @@ class HTMLArticleScrapper:
             similarity_threshold: float = 0.3,
             continuity_window: int = 1,
     ):
-        """
-        :param general_prompt: A broad question/topic you want to find in the article.
-        :param particular_prompt: A more specific question/topic.
-        :param model_name: A huggingface model name for SentenceTransformer embeddings.
-        :param similarity_threshold: Keep paragraphs whose max similarity with either prompt exceeds this.
-        :param continuity_window: Number of neighboring paragraphs to keep for context.
-        """
         self.model_name = model_name
         self.device = self._select_device()
         self.model = SentenceTransformer(model_name).to(self.device)
@@ -63,7 +58,6 @@ class HTMLArticleScrapper:
         self.continuity_window = continuity_window
 
     def _select_device(self) -> torch.device:
-        """Selects the best available device (MPS, CUDA, or CPU)."""
         if torch.backends.mps.is_available():
             return torch.device("mps")
         elif torch.cuda.is_available():
@@ -71,18 +65,8 @@ class HTMLArticleScrapper:
         return torch.device("cpu")
 
     def _fetch_html_stealthily(self, url: str, max_retries: int = 3) -> Optional[str]:
-        """
-        Attempt to fetch HTML content via a normal HTTP GET request with stealthy headers.
-        If the request fails or the returned HTML is very short (indicating a possible paywall),
-        fall back to using the PaywallUnblocker.unblock_url method.
-
-        :param url: The URL to fetch.
-        :param max_retries: Number of attempts to try the HTTP GET request.
-        :return: The HTML content as a string, or None if both methods fail.
-        """
         for attempt in range(max_retries):
             try:
-                # Wait a random short delay
                 time.sleep(random.uniform(1.0, 3.0))
                 headers = {
                     "User-Agent": random.choice(USER_AGENTS),
@@ -91,10 +75,10 @@ class HTMLArticleScrapper:
                 response = requests.get(url, headers=headers, timeout=10)
                 response.raise_for_status()
                 html = response.text
-                # Check if the returned HTML seems too short (could be a paywall)
                 if len(html.strip()) < 500:
                     logging.warning(
-                        f"[Attempt {attempt + 1}/{max_retries}] HTML too short (length {len(html.strip())}); might be paywalled."
+                        f"[Attempt {attempt + 1}/{max_retries}] HTML too short (length {len(html.strip())}); "
+                        "might be paywalled."
                     )
                     continue
                 return html
@@ -103,20 +87,10 @@ class HTMLArticleScrapper:
 
         logging.error(f"Failed to fetch {url} via normal HTTP after {max_retries} attempts.")
         logging.info("Falling back to PaywallUnblocker method.")
-
-        # Use the PaywallUnblocker class as a backoff mechanism.
-        fallback_unblocker = PaywallUnblocker(wait_time=13)  # Use desired defaults
+        fallback_unblocker = PaywallUnblocker(wait_time=13)
         return fallback_unblocker.unblock_url(url)
 
     def process_resource(self, url: str) -> str:
-        """
-        Main entry point:
-          1) Stealthily fetch the HTML at 'url'.
-          2) Parse and remove boilerplate.
-          3) Extract relevant text blocks (including from tables).
-          4) Filter them by semantic similarity with the two prompts.
-        Returns the extracted main article or an empty string if fetching fails.
-        """
         html_content = self._fetch_html_stealthily(url)
         if not html_content:
             return ""
@@ -130,47 +104,34 @@ class HTMLArticleScrapper:
             text_blocks = self._extract_alternative_text_blocks(soup)
 
         main_article = self._extract_main_article_from_blocks(text_blocks)
-        return main_article
+        # >>> Clean the final text <<<
+        cleaned_article = self._clean_text(main_article)
+        return cleaned_article
 
     def _remove_boilerplate(self, soup: BeautifulSoup):
-        """
-        Remove HTML tags that are typically not relevant to the article content.
-        Add more tag names if needed (e.g., <header>, <form>, etc.).
-        """
         for tag_name in ["nav", "footer", "aside", "script", "style", "form"]:
             for tag in soup.find_all(tag_name):
                 tag.decompose()
 
     def _extract_text_blocks(self, soup: BeautifulSoup, min_length: int = 50) -> List[str]:
-        """
-        Extract text from <p> and <div> elements above certain length.
-        Also includes text from tables as separate blocks.
-        """
         blocks = []
-
-        # Paragraphs
+        # Extract paragraphs
         for p in soup.find_all("p"):
             text = p.get_text(separator=" ", strip=True)
             if len(text) >= min_length:
                 blocks.append(text)
-
-        # If not enough paragraphs, also look for <div> blocks
+        # If not enough paragraphs, look for div blocks
         if len(blocks) < 5:
             for div in soup.find_all("div"):
                 text = div.get_text(separator=" ", strip=True)
-                if len(text) >= 100:  # higher threshold for div text
+                if len(text) >= 100:
                     blocks.append(text)
-
-        # Extract tables as text blocks
+        # Extract table data
         table_texts = self._extract_tables_as_text(soup)
         blocks.extend(table_texts)
-
         return blocks
 
     def _extract_tables_as_text(self, soup: BeautifulSoup) -> List[str]:
-        """
-        Convert each <table> element into a string so that table data is also considered.
-        """
         tables = []
         for table in soup.find_all("table"):
             rows = []
@@ -180,38 +141,42 @@ class HTMLArticleScrapper:
                     rows.append(" | ".join(cells))
             table_str = "\n".join(rows).strip()
             if len(table_str) > 30:
-                # Exclude very short/empty tables
                 tables.append(table_str)
         return tables
 
+    def _extract_meta_content(self, soup: BeautifulSoup) -> List[str]:
+        """
+        Extracts meta tag contents from common description meta tags.
+        """
+        meta_texts = []
+        meta_names = {"description", "og:description", "twitter:description"}
+        for meta in soup.find_all("meta"):
+            name_attr = meta.get("name", "").lower()
+            prop_attr = meta.get("property", "").lower()
+            if name_attr in meta_names or prop_attr in meta_names:
+                content = meta.get("content", "").strip()
+                if content:
+                    meta_texts.append(content)
+        return meta_texts
+
     def _extract_alternative_text_blocks(self, soup: BeautifulSoup) -> List[str]:
-        """
-        Fallback extraction: simply get all text from the page.
-        """
+        # Try to extract meta tag content first.
+        meta_texts = self._extract_meta_content(soup)
+        if meta_texts:
+            return meta_texts
+        # Fallback: get all text from the page.
         text = soup.get_text(separator=" ", strip=True)
         return [text] if text else []
 
     def _extract_main_article_from_blocks(self, text_blocks: List[str]) -> str:
-        """
-        1) Embed each block and compute similarity with the prompts.
-        2) Retain blocks above self.similarity_threshold (using the higher of the two prompt similarities).
-        3) Keep some neighbors for continuity.
-        4) Remove redundant lines (those sharing a repeated sequence of 6 consecutive words).
-        """
         if not text_blocks:
             return ""
-
-        # Embed blocks
         block_embeddings = self.model.encode(text_blocks, convert_to_tensor=True, device=self.device)
-
-        # Compare with both prompts
         sim_general = util.cos_sim(block_embeddings, self.general_prompt_emb).squeeze(dim=1)
         sim_partic = util.cos_sim(block_embeddings, self.particular_prompt_emb).squeeze(dim=1)
-
-        # Give 10% more weight to particular prompt
+        # Weighted sum: can adjust weighting if desired
         similarities = sim_general + 3 * sim_partic
 
-        # Now apply the threshold check
         relevant_indices = [
             i for i, score in enumerate(similarities)
             if score.item() >= self.similarity_threshold
@@ -219,7 +184,7 @@ class HTMLArticleScrapper:
         if not relevant_indices:
             return ""
 
-        # Keep neighbors for continuity
+        # Keep some context lines around each relevant block
         keep_indices = set()
         for i in relevant_indices:
             keep_indices.add(i)
@@ -229,67 +194,74 @@ class HTMLArticleScrapper:
                 if i + offset < len(text_blocks):
                     keep_indices.add(i + offset)
 
-        # Build final text, preserving order
         kept_blocks = [text_blocks[i] for i in sorted(keep_indices)]
         main_article = "\n\n".join(kept_blocks)
-
-        # Remove redundant lines that share 6 consecutive words
         main_article = self.remove_redundant_lines(main_article, n=6)
         return main_article
 
-    def remove_redundant_lines(self, text: str, n = 6) -> str:
+    def remove_redundant_lines(self, text: str, n=6) -> str:
         """
-        Remove lines that contain any n-gram (default: 6 consecutive words)
-        that has already appeared in previously accepted lines.
-
-        :param text: The full article text (with newlines).
-        :param n: The number of consecutive words to consider as a fingerprint.
-        :return: Cleaned text with duplicate lines removed.
+        Minimally deduplicates lines that share repeated n-grams.
         """
         seen_ngrams = set()
         filtered_lines = []
-
         for line in text.splitlines():
             line = line.strip()
             if not line:
                 continue
             words = line.split()
-            # For short lines, simply check if the line is already in the output.
             if len(words) < n:
+                # Keep short lines once, to avoid losing them entirely
                 if line in filtered_lines:
                     continue
-                else:
-                    filtered_lines.append(line)
-                    continue
-
-            # Compute all n-grams from this line.
+                filtered_lines.append(line)
+                continue
             ngrams = {" ".join(words[i:i + n]) for i in range(len(words) - n + 1)}
-
-            # If any n-gram in this line was seen before, skip the line.
             if any(ng in seen_ngrams for ng in ngrams):
                 continue
-
-            # Otherwise, add these n-grams to the seen set and keep the line.
             seen_ngrams.update(ngrams)
             filtered_lines.append(line)
-
         return "\n".join(filtered_lines)
+
+    def _clean_text(self, text: str) -> str:
+        """
+        Removes special characters, empty lines, and any line with < 3 words.
+        Adjust the regex or word-count threshold as desired.
+        """
+        cleaned_lines = []
+        for line in text.splitlines():
+            # Strip leading/trailing whitespace
+            line = line.strip()
+            if not line:
+                continue
+            # Remove unwanted characters (allow a-z, A-Z, 0-9, punctuation, whitespace)
+            # You can adjust this pattern as needed.
+            line = re.sub(r"[^a-zA-Z0-9\s.,!?;:\-()]+", "", line)
+            # Remove extra spaces
+            line = re.sub(r"\s+", " ", line).strip()
+
+            # Check word count
+            words = line.split()
+            if len(words) < 3:
+                continue
+
+            cleaned_lines.append(line)
+        return "\n".join(cleaned_lines)
 
 
 # Example usage:
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     scrapper = HTMLArticleScrapper(
-        general_prompt="Trump",
-        particular_prompt="Mexico Crisis",
+        general_prompt="Financial Performance",
+        particular_prompt="Oracle Earnings",
         model_name="sentence-transformers/all-MiniLM-L6-v2",
         similarity_threshold=0.45,
-        continuity_window=1
+        continuity_window=3
     )
-    # Replace with any URL that you want to scrape
-    url = (
-        "https://www.bloomberg.com/news/articles/2025-02-24/"
-        "trump-says-tariffs-on-mexico-canada-going-forward-next-month"
-    )
+
+    url = "https://www.wsj.com/politics/national-security/u-s-hitting-brakes-on-flow-of-arms-to-ukraine-980a71d1"
     article_text = scrapper.process_resource(url)
-    print("===== EXTRACTED ARTICLE =====")
+
+    print("===== EXTRACTED ARTICLE (CLEANED) =====")
     print(article_text)

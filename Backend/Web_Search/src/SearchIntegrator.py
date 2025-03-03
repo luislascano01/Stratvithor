@@ -78,7 +78,7 @@ class SearchIntegrator:
         search_prompts = query_synth.generate_search_prompts(conjugated_search_prompt)
         print(f"Search prompts:\n")
         for i, search_prompt in enumerate(search_prompts):
-             print(f'{i+1}. {search_prompt}')
+            print(f'{i+1}. {search_prompt}')
 
         web_scrapper = HTMLArticleScrapper(self.general_prompt, self.particular_prompt)
         pdf_scrapper = PDFScrapper(self.general_prompt, self.particular_prompt)
@@ -91,7 +91,12 @@ class SearchIntegrator:
             # Try to extract an extension from the URL.
             ext_match = re.search(r"\.([a-zA-Z0-9]+)([\?&]|$)", curr_url)
             if ext_match:
-                extension = ext_match.group(1).lower()
+                ext = ext_match.group(1).lower()
+                # If the URL ends with .aspx, we shouldn't trust the extension alone.
+                if ext == "aspx":
+                    extension = self.detect_resource_type(curr_url)
+                else:
+                    extension = ext
             else:
                 # If no explicit extension, use our helper to detect the type.
                 extension = self.detect_resource_type(curr_url)
@@ -99,9 +104,10 @@ class SearchIntegrator:
             # For DOCX, use the PDF scrapper.
             if extension == "docx":
                 extension = "pdf"
-            # Default to HTML if it's not a PDF.
+            # Default to HTML if it's not recognized as PDF.
             if extension not in ["pdf"]:
                 extension = "html"
+
             scrapped_text = ""
             try:
                 scrapped_text = custom_scrappers[extension].process_resource(curr_url)

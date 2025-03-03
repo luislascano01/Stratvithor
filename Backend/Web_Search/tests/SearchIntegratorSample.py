@@ -54,8 +54,8 @@ def main():
 
     # Instantiate the SearchIntegrator with your prompts and credentials.
     search_integrator = SearchIntegrator(
-        general_prompt="Ukraine and Russia War",
-        particular_prompt="Zelensky in White House",
+        general_prompt="Briefly describe the history of the company, what it does, where it's located and in the last paragraph, explain how much the company has generated in revenues over the last quarter, how much in EBITDA (show margin percentage), how much debt the company has on its balance sheet and what is the total leverage (also net of cash).",
+        particular_prompt="Tesla",
         cred_mngr=cred_mngr,
         operating_path=operating_path
     )
