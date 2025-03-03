@@ -102,8 +102,11 @@ class SearchIntegrator:
             # Default to HTML if it's not a PDF.
             if extension not in ["pdf"]:
                 extension = "html"
-
-            scrapped_text = custom_scrappers[extension].process_resource(curr_url)
+            scrapped_text = ""
+            try:
+                scrapped_text = custom_scrappers[extension].process_resource(curr_url)
+            except Exception as e:
+                logging.error(f"Failed to scrap resource for {curr_url}: {e}")
             # If no text was scrapped, skip this resource.
             if not scrapped_text.strip():
                 return None
