@@ -54,8 +54,8 @@ def main():
 
     # Instantiate the SearchIntegrator with your prompts and credentials.
     search_integrator = SearchIntegrator(
-        general_prompt="Financial Performance and EBIDTA, CASHFLOW",
-        particular_prompt="NCR Company",
+        general_prompt="Ukraine and Russia War",
+        particular_prompt="Zelensky in White House",
         cred_mngr=cred_mngr,
         operating_path=operating_path
     )

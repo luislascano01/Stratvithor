@@ -13,7 +13,11 @@ class PromptManager:
 
     def load_prompts(self, yaml_file_path):
         """Load prompts from a YAML file and store them in a nested dictionary."""
-        with open(yaml_file_path, 'r', encoding='utf-8') as file:
+        # Resolve the YAML file path relative to the current working (execution) directory
+        base_dir = os.getcwd()
+        abs_yaml_path = os.path.join(base_dir, yaml_file_path)
+
+        with open(abs_yaml_path, 'r', encoding='utf-8') as file:
             data = yaml.safe_load(file)
 
         prompts_data = data.get("prompts", {})  # Ensure it doesn't crash if 'prompts' key is missing
@@ -188,13 +192,6 @@ class PromptManager:
         Produce a LaTeX document with TikZ that lays out the DAG in distinct
         horizontal layers (rows) based on each node's depth. Nodes at the
         same depth appear side by side, ensuring we don't get a single column.
-
-        Steps:
-          1) Topological sort the graph.
-          2) Compute depth[node] = max depth of parent + 1.
-          3) Group nodes by depth.
-          4) Place them horizontally left->right in ascending order.
-          5) Draw directed edges.
         """
         import networkx as nx
         from collections import defaultdict
@@ -240,7 +237,6 @@ class PromptManager:
         sorted_depths = sorted(depth_map.keys())
         for depth in sorted_depths:
             nodes_at_depth = depth_map[depth]
-            # We'll center them around x=0. So the leftmost node is at x = -((count-1)/2)*node_x_distance
             count = len(nodes_at_depth)
             start_x = -((count - 1) / 2.0) * node_x_distance
             y_coord = -(depth * layer_y_distance)
@@ -266,7 +262,6 @@ class PromptManager:
 
         return "\n".join(latex_lines)
 
-
     def display_prompts(self):
         """Print all stored prompts in a readable format."""
         import textwrap
@@ -275,7 +270,7 @@ class PromptManager:
             print(f"Prompt: {prompt}")
             print(f"  Section Title: {details['section_title']}")
             wrapped_text = textwrap.fill(details['text'], width=50,
-                                         subsequent_indent=prompt_text_wrap_indent)  # Wrap text to 50 chars with indent
+                                         subsequent_indent=prompt_text_wrap_indent)
             print(f"  Prompt Text:\n{prompt_text_wrap_indent}{wrapped_text}")
             print(f"  Additional Data: {details['additional_data']}")
             print(f"  ID: {details['id']}")

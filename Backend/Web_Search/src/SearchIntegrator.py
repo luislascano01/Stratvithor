@@ -164,8 +164,8 @@ class SearchIntegrator:
             conjugating_string = "\nIn our case the subject matter we are talking about is: "
             return self.general_prompt + conjugating_string + self.particular_prompt + " {" + self.general_prompt + "}"
         else:
-            advanced_merged_prompt = self.get_intelligent_composed_propmpt()
+            advanced_merged_prompt = self.get_intelligent_composed_prompt()
             return advanced_merged_prompt
 
-    def get_intelligent_composed_propmpt(self):
+    def get_intelligent_composed_prompt(self):
         raise NotImplementedError("This method is not implemented yet.")
