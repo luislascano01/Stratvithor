@@ -27,13 +27,14 @@ def format_url(url: str) -> str:
 
 
 class SearchIntegrator:
-    def __init__(self, general_prompt: str, particular_prompt, cred_mngr: CredentialManager, operating_path: str):
+    def __init__(self, general_prompt: str, particular_prompt, cred_mngr: CredentialManager, operating_path: str, worker_timeout=40):
         self.general_prompt = general_prompt
         self.particular_prompt = particular_prompt
         self.cred_mngr = cred_mngr
         self.g_api_key = cred_mngr.get_credential("API_Keys", "Google_Cloud")
         self.operating_dir_path = operating_path
         self.default_csd_id = cred_mngr.get_credential("Online_Tool_ID", "Custom_G_Search")
+        self.worker_timeout = worker_timeout
         if self.g_api_key is None:
             logging.error("Google Cloud API key not found in passed credential manager (grouped credentials).")
 
@@ -159,7 +160,7 @@ class SearchIntegrator:
             future_to_prompt = {executor.submit(worker, prompt): prompt for prompt in search_prompts}
             for future in as_completed(future_to_prompt):
                 try:
-                    results = future.result()
+                    results = future.result(timeout=self.worker_timeout)
                     for curr_search_result in results:
                         if curr_search_result['url'] not in url_set:
                             url_set.add(curr_search_result['url'])
