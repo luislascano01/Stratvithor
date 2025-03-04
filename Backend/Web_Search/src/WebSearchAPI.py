@@ -42,6 +42,7 @@ class SearchRequest(BaseModel):
     cse_id: Optional[str] = Field(None, description="Optional Custom Search Engine ID.")
 
 
+
 @app.get("/")
 def read_root():
     logging.info("👋 Root endpoint accessed.")
@@ -92,7 +93,6 @@ class SearchResponse(BaseModel):
         results: A list of aggregated search results.
     """
     results: List[SearchAggregationResult] = Field(..., description="List of aggregated search results.")
-
 
 @app.post(
     "/search",

@@ -89,32 +89,36 @@ class SearchIntegrator:
 
         def process_resource(matching_resource: Dict[str, object]) -> Optional[Dict[str, object]]:
             curr_url = matching_resource["url"]
-            # Try to extract an extension from the URL.
+            # Extract extension from URL; if .aspx then detect resource type
             ext_match = re.search(r"\.([a-zA-Z0-9]+)([\?&]|$)", curr_url)
             if ext_match:
                 ext = ext_match.group(1).lower()
-                # If the URL ends with .aspx, we shouldn't trust the extension alone.
                 if ext == "aspx":
                     extension = self.detect_resource_type(curr_url)
                 else:
                     extension = ext
             else:
-                # If no explicit extension, use our helper to detect the type.
                 extension = self.detect_resource_type(curr_url)
 
-            # For DOCX, use the PDF scrapper.
+            # For DOCX, use the PDF scrapper; default to HTML if not PDF.
             if extension == "docx":
                 extension = "pdf"
-            # Default to HTML if it's not recognized as PDF.
             if extension not in ["pdf"]:
                 extension = "html"
 
             scrapped_text = ""
             try:
-                scrapped_text = custom_scrappers[extension].process_resource(curr_url)
+                # Wrap the scraping call in a separate thread to enforce timeout.
+                from concurrent.futures import ThreadPoolExecutor, TimeoutError
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(custom_scrappers[extension].process_resource, curr_url)
+                    scrapped_text = future.result(timeout=self.scrapping_timeout)
+            except TimeoutError as te:
+                logging.error(f"Scrapping resource timed out for {curr_url}: {te}")
+                return matching_resource  # Return the original dictionary if timeout occurs.
             except Exception as e:
                 logging.error(f"Failed to scrap resource for {curr_url}: {e}")
-            # If no text was scrapped, skip this resource.
+
             if not scrapped_text.strip():
                 return None
 
@@ -127,7 +131,7 @@ class SearchIntegrator:
             future_to_resource = {
                 executor.submit(process_resource, res): res for res in matching_online_resources
             }
-            for future in as_completed(future_to_resource, timeout=self.worker_timeout):
+            for future in as_completed(future_to_resource):
                 try:
                     result = future.result()
                     if result is not None:
@@ -160,7 +164,7 @@ class SearchIntegrator:
             future_to_prompt = {executor.submit(worker, prompt): prompt for prompt in search_prompts}
             for future in as_completed(future_to_prompt):
                 try:
-                    results = future.result(timeout=self.worker_timeout)
+                    results = future.result()
                     for curr_search_result in results:
                         if curr_search_result['url'] not in url_set:
                             url_set.add(curr_search_result['url'])
