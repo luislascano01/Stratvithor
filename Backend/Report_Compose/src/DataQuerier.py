@@ -120,7 +120,7 @@ async def main():
 
     # Example general prompt and focus message.
     general_prompt = "Explain in depth all you can about the company's business, including all company segments. You can create tables with the evolution of sales of all different relevant segments, quarterly NOI. Give all relevant information found on how the company is operating. This is the most important section, be as thorough as possible."
-    focus_message = "Burger Kink Company"
+    focus_message = "Acer Technological Company"
 
     # Instantiate the DataQuerier with the above parameters.
     dq = DataQuerier(

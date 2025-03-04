@@ -1,3 +1,4 @@
+import json
 import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -192,6 +193,7 @@ async def search_endpoint(request: SearchRequest):
         # Execute aggregated search and capture results.
         results = integrator.get_aggregated_response(request.llm_api_url, request.cse_id)
         logging.info("✅ Successfully aggregated search results.")
+        print(json.dumps(results, indent=4))
     except Exception as e:
         logging.error(f"❌ Error during search integration: {e}")
         raise HTTPException(status_code=500, detail=f"Search integration failed: {e}")
