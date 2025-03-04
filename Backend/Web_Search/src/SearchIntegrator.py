@@ -27,7 +27,7 @@ def format_url(url: str) -> str:
 
 
 class SearchIntegrator:
-    def __init__(self, general_prompt: str, particular_prompt, cred_mngr: CredentialManager, operating_path: str, worker_timeout=100):
+    def __init__(self, general_prompt: str, particular_prompt, cred_mngr: CredentialManager, operating_path: str, worker_timeout=100, scrapping_timeout=100):
         self.general_prompt = general_prompt
         self.particular_prompt = particular_prompt
         self.cred_mngr = cred_mngr
@@ -35,6 +35,7 @@ class SearchIntegrator:
         self.operating_dir_path = operating_path
         self.default_csd_id = cred_mngr.get_credential("Online_Tool_ID", "Custom_G_Search")
         self.worker_timeout = worker_timeout
+        self.scrapping_timeout = scrapping_timeout
         if self.g_api_key is None:
             logging.error("Google Cloud API key not found in passed credential manager (grouped credentials).")
 
@@ -115,10 +116,10 @@ class SearchIntegrator:
                     scrapped_text = future.result(timeout=self.scrapping_timeout)
             except TimeoutError as te:
                 logging.error(f"Scrapping resource timed out for {curr_url}: {te}")
-                return matching_resource  # Return the original dictionary if timeout occurs.
+                return None # Return the original dictionary if timeout occurs.
             except Exception as e:
                 logging.error(f"Failed to scrap resource for {curr_url}: {e}")
-
+                return None
             if not scrapped_text.strip():
                 return None
 
