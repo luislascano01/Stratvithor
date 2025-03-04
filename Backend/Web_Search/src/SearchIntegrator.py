@@ -27,7 +27,7 @@ def format_url(url: str) -> str:
 
 
 class SearchIntegrator:
-    def __init__(self, general_prompt: str, particular_prompt, cred_mngr: CredentialManager, operating_path: str, worker_timeout=40):
+    def __init__(self, general_prompt: str, particular_prompt, cred_mngr: CredentialManager, operating_path: str, worker_timeout=100):
         self.general_prompt = general_prompt
         self.particular_prompt = particular_prompt
         self.cred_mngr = cred_mngr
@@ -127,7 +127,7 @@ class SearchIntegrator:
             future_to_resource = {
                 executor.submit(process_resource, res): res for res in matching_online_resources
             }
-            for future in as_completed(future_to_resource):
+            for future in as_completed(future_to_resource, timeout=self.worker_timeout):
                 try:
                     result = future.result()
                     if result is not None:
