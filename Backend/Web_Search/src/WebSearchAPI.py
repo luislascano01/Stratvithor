@@ -44,6 +44,7 @@ class SearchRequest(BaseModel):
 
 @app.get("/")
 def read_root():
+    logging.info("👋 Root endpoint accessed.")
     return {"message": "Welcome to the SearchIntegrator API"}
 
 
@@ -59,7 +60,9 @@ async def health_check():
     Returns:
         A JSON response with the status of the API.
     """
+    logging.info("💓 Health check requested.")
     return {"status": "ok"}
+
 
 class SearchAggregationResult(BaseModel):
     """
@@ -89,6 +92,7 @@ class SearchResponse(BaseModel):
         results: A list of aggregated search results.
     """
     results: List[SearchAggregationResult] = Field(..., description="List of aggregated search results.")
+
 
 @app.post(
     "/search",
@@ -162,32 +166,37 @@ async def search_endpoint(request: SearchRequest):
   }
   ```
     """
+    logging.info("🔎 Received search request.")
     try:
-        # Create the CredentialManager from the provided credentials string.
+        # Initialize CredentialManager using provided credentials.
         cred_manager = CredentialManager(request.credentials)
+        logging.info("✅ CredentialManager loaded successfully.")
     except Exception as e:
-        logging.error(f"Failed to initialize CredentialManager: {e}")
+        logging.error(f"❌ Failed to initialize CredentialManager: {e}")
         raise HTTPException(status_code=400, detail=f"Invalid credentials provided: {e}")
 
     try:
-        # Create the SearchIntegrator instance with the provided parameters.
+        # Initialize SearchIntegrator with the search prompts and CredentialManager.
         integrator = SearchIntegrator(
             general_prompt=request.general_prompt,
             particular_prompt=request.particular_prompt,
             cred_mngr=cred_manager,
             operating_path=request.operating_path
         )
+        logging.info("✅ SearchIntegrator initialized successfully.")
     except Exception as e:
-        logging.error(f"Failed to initialize SearchIntegrator: {e}")
+        logging.error(f"❌ Failed to initialize SearchIntegrator: {e}")
         raise HTTPException(status_code=500, detail="Failed to initialize SearchIntegrator.")
 
     try:
-        # Execute the aggregated search.
+        # Execute aggregated search and capture results.
         results = integrator.get_aggregated_response(request.llm_api_url, request.cse_id)
+        logging.info("✅ Successfully aggregated search results.")
     except Exception as e:
-        logging.error(f"Error during search integration: {e}")
+        logging.error(f"❌ Error during search integration: {e}")
         raise HTTPException(status_code=500, detail=f"Search integration failed: {e}")
 
+    logging.info("🚀 Search request completed.")
     return {"results": results}
 
 
@@ -195,4 +204,4 @@ async def search_endpoint(request: SearchRequest):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8383)
