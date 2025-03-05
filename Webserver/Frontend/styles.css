@@ -1,0 +1,58 @@
+/* Sidebar width control */
+.expanded {
+  width: 25%;
+}
+.collapsed {
+  display: none !important;
+}
+
+/* Overall body background and text in dark mode */
+html.dark-mode body {
+  background-color: #1a202c !important; /* Dark background */
+  color: white !important;
+}
+
+/* Panels that were light become dark, originally dark become light, etc. */
+html.dark-mode .user-info,
+html.dark-mode .chat-input-panel {
+  background-color: #2d3748 !important;
+  color: white !important;
+}
+
+html.dark-mode #sidebar {
+  background-color: #f7fafc !important;
+  color: #1a202c !important;
+}
+
+html.dark-mode #sidebar button {
+  background-color: #e2e8f0 !important;
+  color: #1a202c !important;
+}
+
+html.dark-mode #chat-container,
+html.dark-mode #chat-history {
+  background-color: #1a202c !important;
+  color: white !important;
+}
+
+/* Fix buttons and inputs in dark mode */
+html.dark-mode button,
+html.dark-mode input {
+  background-color: #4a5568 !important;
+  color: white !important;
+}
+
+/* Specific color overrides */
+html.dark-mode .bg-blue-500 {
+  background-color: #90cdf4 !important;
+  color: #1a202c !important;
+}
+
+html.dark-mode .hover\:bg-blue-600:hover {
+  background-color: #63b3ed !important;
+}
+
+html.dark-mode .bg-green-500 {
+  background-color: #9ae6b4 !important;
+  color: #1a202c !important;
+}

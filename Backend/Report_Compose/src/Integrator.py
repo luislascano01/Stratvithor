@@ -1,127 +1,106 @@
-import json
 import asyncio
 import networkx as nx
-
-from DataMolder import DataMolder
-from PromptManager import PromptManager
+from Backend.Report_Compose.src.ResultsDAG import ResultsDAG
+from Backend.Report_Compose.src.PromptManager import PromptManager
 
 
 class Integrator:
-    def __init__(self, yaml_file_path, web_search_url):
+    """
+    This class serves as a orchestrator of the services necessary to compose the report based on the YAML file.
+    Integrator interacts with Prompt_Manager to store and retrieve the prompts from a YAML file.
+
+    Although composing the report could all be done in one shot, since the time it would take to complete the report
+    by the LLM on the back-end are at the moment too long. It is important that each completed prompt node
+    is returned as we complete the prompt. The idea is that Integrator interacts with RequestMngrAPI who is
+    responsible for handling the incoming report generation request that are coming from the front-end.
+
+    The YAML prompt file contains the prompts (section_name, text, id, system) and the prompt_dag which corresponds
+    to a graph indicating how prompts depend on each other. Although PromptManager takes care of the Directed-Acyclic
+    Graph, the prompts need to be explored by Integrator in topological order such that the parents prompt results
+    are added to the context of the corresponding child prompts.
+
+    The dag needs to be explored asynchronously per each node, and once any non-system (system = false)
+     node DataQuery data is retrieved, then such output needs to be sent to DataMolder which will accept all the
+     previous context and responses (in consecutive order) plus the results of the Web Search done by the corresponding
+     Data Querier node.
+
+     The result output from Data Molder (which is a LLM-based program) then becomes the current node's output.
+
+     As the Directed-Acyclic-Graph gets completed; the results for each node should be placed on DAG structure
+     in our case we will have a separated file: ResultsDAG.py which gets updated every time a node is completed.
+
+    A great approach would be to BFS the prompts inside PromptManager and every time some node gets completed; store it
+    in a node inside the ResultsDAG object.
+
+    Ultimately, the ResultsDAG object should be accessible through our front-end-facing class "RequestMngrAPI.py"
+    that will be the instantiator of all the process. Such API will have a WebSocket with the front-end (client)
+    so that the client PC is able to explore the resulting information.
+
+
+    """
+
+    def __init__(self, yaml_file_path: str):
         """
-        Initializes the Integrator by loading prompts from a YAML file and setting up dependencies.
-        Also instantiates a DataMolder.
-        :param yaml_file_path: Path to the YAML file containing prompts.
-        :param web_search_url: The URL for the Web_Search API.
+        Initialize the Integrator with a path to the prompts YAML.
+        Creates a PromptManager and a fresh ResultsDAG.
         """
-        self.prompt_manager = None
-        self.load_prompts(yaml_file_path)
-        # Assume that DataMolder can be instantiated without parameters.
-        self.data_molder = DataMolder()
-        # Store the web search URL for use in each query.
-        self.web_search_url = web_search_url
+        self.prompt_manager = PromptManager(yaml_file_path)
+        self.results_dag = ResultsDAG()
 
-    def load_prompts(self, yaml_file_path):
+    async def generate_report(
+        self,
+        company_name: str,
+        custom_topic_focuser: str = "",
+        mock: bool = False
+    ) -> str:
         """
-        Loads the YAML file and initializes the PromptManager.
-        :param yaml_file_path: Path to the YAML file.
+        Process the prompt DAG in topological order.
+        For each node:
+          1) Gather parent node results as context (if needed).
+          2) Either do a mock delay or call real DataQuerier/DataMolder.
+          3) Store the result in ResultsDAG.
+
+        Returns a JSON string of all node results at the end.
         """
-        import yaml
-        with open(yaml_file_path, "r", encoding="utf-8") as file:
-            prompts_data = yaml.safe_load(file)
+        dag = self.prompt_manager.prompt_dag
+        sorted_nodes = list(nx.topological_sort(dag))
 
-        self.prompt_manager = PromptManager(yaml_file_path)  # PromptManager loads its own data
+        # Initialize each node in ResultsDAG as "pending"
+        for node_id in dag.nodes():
+            self.results_dag.init_node(node_id)
 
-    async def generate_report(self, company_name, custom_topic_focuser):
-        """
-        Generates the report by processing each prompt (except the "initial") in the DAG.
-        Each prompt is processed only when all its parent prompts have completed.
-        For each prompt:
-          - Combine parent's responses as context.
-          - Web-query using a new DataQuerier (with previous messages including parent responses and current prompt text).
-          - Use DataMolder to "intersect" (i.e. refine) the web response with the prompt text and parent context.
-          - Store the intersection result.
-        Finally, all processed prompts are merged into a single JSON-formatted report.
+        # Traverse nodes in topological order
+        for node_id in sorted_nodes:
+            try:
+                if mock:
+                    # Mock delay & result
+                    await asyncio.sleep(1.0)
+                    # Generate a trivial result
+                    node_prompt = self.prompt_manager.get_prompt_by_id(node_id)
+                    node_name = node_prompt["section_title"]
+                    mock_result = f"[MOCK] Completed node {node_id} ({node_name})"
+                    self.results_dag.store_result(node_id, mock_result)
+                else:
+                    # Real logic outline:
+                    # 1) gather parent data
+                    #    parent_ids = self.prompt_manager.get_prompt_dependencies(node_id)
+                    #    parent_results = [
+                    #        self.results_dag.get_result(pid)["result"] for pid in parent_ids
+                    #    ]
+                    #
+                    # 2) do your DataQuerier + DataMolder calls here...
+                    #    raw_data = data_querier.query(...), etc.
+                    #    molded_output = await data_molder.process_data(raw_data, ...)
+                    #
+                    # 3) store final
+                    # self.results_dag.store_result(node_id, molded_output)
+                    #
+                    # For now, just do a placeholder:
+                    await asyncio.sleep(1.0)
+                    self.results_dag.store_result(node_id, f"Real result for node {node_id}")
+            except Exception as e:
+                # Mark node as failed if there's any exception
+                self.results_dag.mark_failed(node_id, str(e))
 
-        :param company_name: The name of the company for which the report is generated.
-        :param custom_topic_focuser: Additional context to steer the query or intersection process.
-        :return: A JSON-formatted string representing the report.
-        """
-        # Dictionary to store each prompt's processed (intersection) response.
-        processed_results = {}  # prompt_id -> intersection result
-
-        # Dictionary to store asyncio.Tasks for each prompt.
-        tasks = {}
-
-        # Get the DAG from the prompt manager and compute a topological order.
-        prompt_dag = self.prompt_manager.prompt_dag
-        topo_order = list(nx.topological_sort(prompt_dag))
-
-        # Define an asynchronous function to process a single prompt.
-        async def process_prompt(prompt_id, parent_context):
-            """
-            For a given prompt, create a DataQuerier instance (using parent's responses as context)
-            and process the prompt text.
-            """
-            # Retrieve the prompt object from the PromptManager.
-            prompt_obj = self.prompt_manager.get_prompt_by_id(prompt_id)
-            focus_message = prompt_obj["text"]
-
-            # Build previous_messages: first the parent context (if any), then the current prompt text.
-            previous_messages = []
-            if parent_context:
-                previous_messages.append(parent_context)
-            previous_messages.append(focus_message)
-
-            # Instantiate a new DataQuerier for this prompt.
-            from DataQuerier import DataQuerier
-            data_querier = DataQuerier(previous_messages, focus_message, self.web_search_url)
-            await data_querier.query_and_process()
-            raw_data = data_querier.get_processed_data()
-
-            # Use DataMolder to intersect the web response with the prompt text and parent context.
-            # (Assuming DataMolder.process_data can accept a parent_context and a custom_topic_focuser.)
-            intersection = self.data_molder.process_data(raw_data, parent_context, custom_topic_focuser)
-            return intersection
-
-        # Process each prompt in topological order.
-        # Note: We assume that the "initial" prompt (if any) is not queried.
-        for prompt_id in topo_order:
-            prompt_obj = self.prompt_manager.get_prompt_by_id(prompt_id)
-            # Skip the "initial" prompt (by convention, checking its section_title).
-            if prompt_obj["section_title"].lower() == "initial":
-                # Optionally, store the initial prompt's text as a base context.
-                processed_results[prompt_id] = prompt_obj["text"]
-                continue
-
-            # Retrieve parent prompt IDs (dependencies) for this prompt.
-            parent_ids = self.prompt_manager.get_prompt_dependencies(prompt_id)
-            # Wait for parent's processing to complete (if any) and combine their responses.
-            parent_context = ""
-            if parent_ids:
-                # Ensure parent's tasks have completed.
-                parent_results = [processed_results[parent_id] for parent_id in parent_ids]
-                # Combine parent's results into a single context string.
-                parent_context = "\n".join(json.dumps(r) for r in parent_results)
-
-            # Schedule the processing of this prompt.
-            tasks[prompt_id] = asyncio.create_task(process_prompt(prompt_id, parent_context))
-            # Immediately await tasks for nodes that have no children or that block later ones.
-            # (Since the DAG is topologically sorted, we know that by the time a child is processed,
-            #  its parent's tasks will have completed.)
-            processed_results[prompt_id] = await tasks[prompt_id]
-
-        # Build the final report: use the section_title from each prompt as the key.
-        sections = {}
-        for prompt_id in topo_order:
-            prompt_obj = self.prompt_manager.get_prompt_by_id(prompt_id)
-            # Skip the "initial" prompt if you don't want it in the final report.
-            if prompt_obj["section_title"].lower() == "initial":
-                continue
-            sections[prompt_obj["section_title"]] = processed_results[prompt_id]
-
-        report_data = {
-            "company": company_name,
-            "sections": sections
-        }
-        return json.dumps(report_data, indent=4)
+        # Return JSON representation of the entire DAG’s results
+        return self.results_dag.to_json()

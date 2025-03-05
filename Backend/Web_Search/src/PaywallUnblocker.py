@@ -3,9 +3,8 @@ import random
 import urllib.parse
 import logging
 
-import undetected_chromedriver as uc
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
+#import undetected_chromedriver as uc
+
 
 from sentence_transformers import SentenceTransformer, util
 
@@ -55,7 +54,12 @@ class PaywallUnblocker:
         self.transformer = SentenceTransformer(model_name)
 
         # Set up Chrome options (incognito mode, not headless to mimic real user)
-        self.chrome_options = Options()
+
+        try:
+            from selenium.webdriver.chrome.options import Options
+            self.chrome_options = Options()
+        except ImportError:
+            print(f'Could not import Selenium. Please install Selenium.')
         self.chrome_options.add_argument("--incognito")
         # Uncomment the next line to run headless (might trigger additional checks)
         # self.chrome_options.add_argument("--headless")
@@ -85,6 +89,13 @@ class PaywallUnblocker:
         logger.info(f"Navigating to: {archive_url}")
 
         # Launch undetected-chromedriver with our options.
+        try:
+            import undetected_chromedriver as uc
+            from selenium.webdriver.common.by import By
+        except ImportError:
+            print("Please install undetected_chromedriver")
+            return ""
+
         driver = uc.Chrome(options=self.chrome_options)
         try:
             driver.get(archive_url)
@@ -131,6 +142,8 @@ class PaywallUnblocker:
         finally:
             driver.quit()
 
+
+
     def simulate_human_like_actions(self, driver, highlight: bool = True):
         """
         Simulate human-like browsing actions:
@@ -157,7 +170,10 @@ class PaywallUnblocker:
         # Scroll to the middle
         driver.execute_script(f"window.scrollTo(0, {middle_y});")
         time.sleep(2)
-
+        try:
+            from selenium.webdriver.common.by import By
+        except ImportError:
+            print("Please install Selenium.")
         # Optionally, highlight text in the middle paragraph
         if highlight:
             paragraphs = driver.find_elements(By.TAG_NAME, "p")
