@@ -31,6 +31,8 @@ COPY Backend /app/Backend
 # Copy credentials if needed by your code
 COPY Credentials /app/Credentials
 
+COPY Prompts /app/Prompts
+
 # Expose the port used by the request manager (internally)
 EXPOSE 8181
 EXPOSE 8383

@@ -5,9 +5,7 @@ import time
 import logging
 import asyncio
 
-
 from fastapi import FastAPI, BackgroundTasks, HTTPException, WebSocket, WebSocketDisconnect, Request
-
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -22,11 +20,9 @@ app = FastAPI()
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
-from fastapi.middleware.cors import CORSMiddleware
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Allow all origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,12 +31,8 @@ app.add_middleware(
 # GZip Middleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-@app.middleware("http")
-async def auth_middleware(request: Request, call_next):
-    api_key = request.headers.get("X-API-Key")
-    if api_key != "your-secure-api-key":
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return await call_next(request)
+# --- Authorization middleware removed ---
+# (For now, the auth_middleware is not enforced)
 
 # ----- Data Model for requests -----
 class ReportRequest(BaseModel):
@@ -111,7 +103,7 @@ async def websocket_task_updates(websocket: WebSocket, task_id: str):
     for a particular 'task_id'.
     """
     if task_id not in active_tasks:
-        # If you prefer, accept the connection, send an error, and then close
+        # Accept connection, send error, then close.
         await websocket.accept()
         await websocket.send_json({"error": "Invalid task_id"})
         await websocket.close()
@@ -126,7 +118,6 @@ async def websocket_task_updates(websocket: WebSocket, task_id: str):
     try:
         # Loop over the watch_updates() generator
         async for (node_id, node_data) in results_dag.watch_updates():
-            # Optionally check if the task is still "in-progress" before sending
             await websocket.send_json({
                 "task_id": task_id,
                 "node_id": node_id,
