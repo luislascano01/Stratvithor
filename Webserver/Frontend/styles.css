@@ -71,12 +71,14 @@ html.dark-mode .bg-green-500 {
    green (#32CD32), then back to gold, repeatedly */
 @keyframes breathing-color {
   0%   { fill: #FFD700; }
-  50%  { fill: #32CD32; }
+  45%  { fill: #2316ff; }
+  50%  { fill: #26ae00; }
+  95%  { fill: #2316ff; }
   100% { fill: #FFD700; }
 }
 
 .breathing {
   /* Apply the keyframes animation. 2s = duration, infinite repeats forever,
      ease-in-out makes it a smooth interpolation, but use what you prefer. */
-  animation: breathing-color 2s ease-in-out infinite;
+  animation: breathing-color 4s ease-in-out infinite;
 }
