@@ -280,7 +280,7 @@ class PromptManager:
             print("-" * 40)
 
 if __name__ == "__main__":
-    manager = PromptManager("./Prompts/prompts.yaml")
+    manager = PromptManager("./Prompts/Alberto_Prompts.yaml")
     manager.display_prompts()
 
     # Test DAG functionality

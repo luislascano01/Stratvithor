@@ -1,0 +1,38 @@
+prompts:
+  initial:
+    section_name: "Set Up"
+    text: "For the company that will be specified below, I need you to create a professional, in-depth report suitable for presentation to the Credit Department of a leading international bank. The report must answer the specific questions I will provide, with each answer using the exact title provided before the semicolon as the header of the answer. The title must be used verbatim as the header. Guidelines for the report: Do not begin the report until I specify the company and ask a question. Use only reliable sources such as the company’s SEC filings, annual reports, and official website. Wikipedia must be avoided entirely. Clearly state the sources of information for every response. For any data comparisons, specify the relevant periods to ensure accuracy. Avoid any introductory or explanatory sentences about the question. Go directly to the response under the provided title."
+    id: 0
+    system: true
+  industry_overview:
+    section_name: "Industry Overview"
+    text: "Thoroughly explain how the industry in which the company operates has been performing. Share any graphs or tables that may be relevant and show the evolution of sales, profitability, openings, closures, or other relevant financial information."
+    id: 1
+    system: false
+  background:
+    section_name: "Company Overview"
+    text: "Briefly describe the history of the company, what it does, where it's located and in the last paragraph, explain how much the company has generated in revenues over the last quarter, how much in EBITDA (show margin percentage), how much debt the company has on its balance sheet and what is the total leverage (also net of cash)."
+    id: 2
+    system: false
+  ownership:
+    section_name: "Shareholders"
+    text: "Create a table of the shareholders who own 5% or more of all the company shares and create a table that has the following columns: Name, Number of shares owned, Percentage of ownership."
+    id: 3
+    system: false
+  stock_performance:
+    section_name: "Stock Performance"
+    text: "Explain if the company is publicly listed, and if so, say where and what the most recent market cap is. Below, place a graph that shows its performance over the past 5 years and compare it to its top-2 competitors and against the S&P 500. Last but not least, briefly explain the company's stock performance."
+    id: 4
+    system: false
+  conclusion:
+    section_name: "Summary & Insights"
+    text: "Summarize in bullets the strengths and weaknesses of the company. Financial performance is very important. For each of the weaknesses, explain the mitigating factors."
+    id: 5
+    system: false
+
+prompt_dag:
+  - 0->1->2
+  - 2->3
+  - 2->4
+  - 3->5
+  - 4->5

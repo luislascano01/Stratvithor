@@ -1,3 +1,4 @@
+import os
 import uuid
 import time
 import logging
@@ -25,14 +26,46 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+PROMPTS_DIR = "./Prompts"
 
 # GZip Middleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+class PromptUpdateRequest(BaseModel):
+    yaml_file_path: str
+
+global map_name_to_file
+
+@app.get("/get_prompts")
+async def get_prompts():
+    """Fetch all available prompt sets and map names to file paths."""
+    try:
+        logging.info(f'Prompt Directory: {PROMPTS_DIR}')
+        prompt_files = [f for f in os.listdir(PROMPTS_DIR) if f.endswith(".yaml")]
+
+        # Populate the map (remove file extension for cleaner names)
+        global map_name_to_file
+        map_name_to_file = {
+            f.replace(".yaml", ""): os.path.join(PROMPTS_DIR, f) for f in prompt_files
+        }
+
+        return list(map_name_to_file.keys())  # Return clean names for frontend
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/update_prompt")
+async def update_prompt(request: PromptUpdateRequest):
+    """Update the selected prompt set."""
+    global yaml_file_path
+    yaml_file_path = os.path.join(PROMPTS_DIR, request.yaml_file_path)
+    return {"message": "Prompt set updated", "new_path": yaml_file_path}
+
 # ----- Data Model for requests -----
 class ReportRequest(BaseModel):
     company_name: str
-    mock: bool = False  # We can specify if we want to run in mock mode
+    mock: bool = False
+    prompt_name: str
+    # We can specify if we want to run in mock mode
 
 # We'll store references to integrator objects or results by task_id
 active_tasks: Dict[str, Dict] = {}  # task_id -> { "integrator": Integrator, "status": ..., "report": ... }
@@ -48,9 +81,17 @@ async def generate_report(request: ReportRequest, background_tasks: BackgroundTa
     """
     Start generating a report in the background. Returns a task_id.
     """
+    prompt_name = request.prompt_name
+
+    # Validate that the prompt exists
+    if prompt_name not in map_name_to_file:
+        raise HTTPException(status_code=400, detail=f"Invalid prompt name: {prompt_name}")
+
+    prompt_path = map_name_to_file[prompt_name]
+
     task_id = str(uuid.uuid4())
     # Create an Integrator with the YAML path
-    integrator = Integrator(yaml_file_path="./Prompts/prompts.yaml")
+    integrator = Integrator(yaml_file_path=prompt_path)
 
     # Store in dictionary so we can reference it
     active_tasks[task_id] = {"integrator": integrator, "status": "in-progress", "report": None}
@@ -59,6 +100,7 @@ async def generate_report(request: ReportRequest, background_tasks: BackgroundTa
     background_tasks.add_task(run_report_task, task_id, request.company_name, request.mock)
 
     return {"task_id": task_id, "status": "Processing started"}
+
 
 # The background task that calls Integrator
 async def run_report_task(task_id: str, company_name: str, mock: bool):

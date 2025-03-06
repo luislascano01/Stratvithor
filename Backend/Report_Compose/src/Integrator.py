@@ -50,7 +50,11 @@ class Integrator:
         self.results_dag = ResultsDAG()
         self.tasks = {}
 
-    async def process_node(self, node_id: int, dag: nx.DiGraph, mock: bool):
+    async def process_node(self, node_id: int, msg: str = "") -> str:
+        result = "**Default Result**"
+        return result
+
+    async def queue_node(self, node_id: int, dag: nx.DiGraph, mock: bool):
         """
         Process a single node in the DAG. This task will:
           1. Wait for all parent node tasks to complete.
@@ -74,19 +78,14 @@ class Integrator:
                 result = f"[MOCK] Completed node {node_id} ({node_name})"
                 self.results_dag.store_result(node_id, result)
             else:
-                # Real logic...
-                await asyncio.sleep(1.0)
-
-
-
-                self.results_dag.store_result(node_id, f"Real result for node {node_id}")
+                node_result = self.process_node(node_id)
+                self.results_dag.store_result(node_id, node_result)
         except Exception as e:
             self.results_dag.mark_failed(node_id, str(e))
 
     async def generate_report(
             self,
-            company_name: str,
-            custom_topic_focuser: str = "",
+            focus_text: str,
             mock: bool = False
     ) -> str:
         """
@@ -101,7 +100,7 @@ class Integrator:
 
         # Schedule tasks for each node in topological order so that parent's tasks exist
         for node_id in nx.topological_sort(dag):
-            self.tasks[node_id] = asyncio.create_task(self.process_node(node_id, dag, mock))
+            self.tasks[node_id] = asyncio.create_task(self.queue_node(node_id, dag, mock))
 
         # Await all node tasks concurrently
         await asyncio.gather(*self.tasks.values())
