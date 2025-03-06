@@ -1,5 +1,3 @@
-# RequestMngrAPI.py
-
 import uuid
 import time
 import logging
@@ -30,9 +28,6 @@ app.add_middleware(
 
 # GZip Middleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
-
-# --- Authorization middleware removed ---
-# (For now, the auth_middleware is not enforced)
 
 # ----- Data Model for requests -----
 class ReportRequest(BaseModel):
@@ -80,45 +75,48 @@ async def run_report_task(task_id: str, company_name: str, mock: bool):
         active_tasks[task_id]["status"] = "failed"
         active_tasks[task_id]["report"] = str(e)
 
-# ----- Query Report Status -----
-@app.get("/report_status/{task_id}")
-async def report_status(task_id: str):
-    """
-    Polling endpoint to get the current status and final report (if completed).
-    """
-    if task_id not in active_tasks:
-        raise HTTPException(status_code=404, detail="Task not found")
-
-    return {
-        "task_id": task_id,
-        "status": active_tasks[task_id]["status"],
-        "report": active_tasks[task_id]["report"]
-    }
-
 # ----- Real-Time Updates via WebSocket -----
 @app.websocket("/ws/{task_id}")
 async def websocket_task_updates(websocket: WebSocket, task_id: str):
     """
     A WebSocket endpoint that streams DAG node updates in real time
-    for a particular 'task_id'.
+    for a particular 'task_id'. It first sends the full DAG structure.
     """
     if task_id not in active_tasks:
-        # Accept connection, send error, then close.
         await websocket.accept()
         await websocket.send_json({"error": "Invalid task_id"})
         await websocket.close()
         return
 
-    # Get the integrator and thus the ResultsDAG
+    # Get the integrator and thus the ResultsDAG and prompt_dag
     integrator = active_tasks[task_id]["integrator"]
     results_dag = integrator.results_dag
+    dag = integrator.prompt_manager.prompt_dag
+
+    # Build a simple DAG representation:
+    dag_data = {
+        "nodes": [
+            {
+                "id": node_id,
+                "label": integrator.prompt_manager.get_prompt_by_id(node_id)["section_title"]
+            }
+            for node_id in dag.nodes()
+        ],
+        "links": [
+            {"source": source, "target": target}
+            for source, target in dag.edges()
+        ]
+    }
 
     await websocket.accept()
 
+    # Send initial DAG structure message
+    await websocket.send_json({"type": "init", "dag": dag_data})
+
     try:
-        # Loop over the watch_updates() generator
         async for (node_id, node_data) in results_dag.watch_updates():
             await websocket.send_json({
+                "type": "update",
                 "task_id": task_id,
                 "node_id": node_id,
                 "status": node_data["status"],

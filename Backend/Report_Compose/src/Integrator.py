@@ -46,61 +46,58 @@ class Integrator:
         """
         self.prompt_manager = PromptManager(yaml_file_path)
         self.results_dag = ResultsDAG()
+        self.tasks = {}
+
+    async def process_node(self, node_id: int, dag: nx.DiGraph, mock: bool):
+        """
+        Process a single node in the DAG. This task will:
+          1. Wait for all parent node tasks to complete.
+          2. Run the node's processing (mock or real).
+          3. Store the result or mark failure.
+        """
+        # Get all parent nodes for the current node
+        parent_ids = list(dag.predecessors(node_id))
+        if parent_ids:
+            # Wait concurrently for all parent's tasks to finish
+            await asyncio.gather(*(self.tasks[parent_id] for parent_id in parent_ids))
+
+        try:
+            if mock:
+                # Simulate processing delay
+                await asyncio.sleep(2.0)
+                node_prompt = self.prompt_manager.get_prompt_by_id(node_id)
+                node_name = node_prompt["section_title"]
+                result = f"[MOCK] Completed node {node_id} ({node_name})"
+                self.results_dag.store_result(node_id, result)
+            else:
+                # Replace with real DataQuerier/DataMolder logic
+                await asyncio.sleep(1.0)
+                self.results_dag.store_result(node_id, f"Real result for node {node_id}")
+        except Exception as e:
+            self.results_dag.mark_failed(node_id, str(e))
 
     async def generate_report(
-        self,
-        company_name: str,
-        custom_topic_focuser: str = "",
-        mock: bool = False
+            self,
+            company_name: str,
+            custom_topic_focuser: str = "",
+            mock: bool = False
     ) -> str:
         """
-        Process the prompt DAG in topological order.
-        For each node:
-          1) Gather parent node results as context (if needed).
-          2) Either do a mock delay or call real DataQuerier/DataMolder.
-          3) Store the result in ResultsDAG.
-
-        Returns a JSON string of all node results at the end.
+        Process the prompt DAG concurrently.
+        Each node is scheduled as soon as its dependencies are complete.
         """
         dag = self.prompt_manager.prompt_dag
-        sorted_nodes = list(nx.topological_sort(dag))
 
         # Initialize each node in ResultsDAG as "pending"
         for node_id in dag.nodes():
             self.results_dag.init_node(node_id)
 
-        # Traverse nodes in topological order
-        for node_id in sorted_nodes:
-            try:
-                if mock:
-                    # Mock delay & result
-                    await asyncio.sleep(1.0)
-                    # Generate a trivial result
-                    node_prompt = self.prompt_manager.get_prompt_by_id(node_id)
-                    node_name = node_prompt["section_title"]
-                    mock_result = f"[MOCK] Completed node {node_id} ({node_name})"
-                    self.results_dag.store_result(node_id, mock_result)
-                else:
-                    # Real logic outline:
-                    # 1) gather parent data
-                    #    parent_ids = self.prompt_manager.get_prompt_dependencies(node_id)
-                    #    parent_results = [
-                    #        self.results_dag.get_result(pid)["result"] for pid in parent_ids
-                    #    ]
-                    #
-                    # 2) do your DataQuerier + DataMolder calls here...
-                    #    raw_data = data_querier.query(...), etc.
-                    #    molded_output = await data_molder.process_data(raw_data, ...)
-                    #
-                    # 3) store final
-                    # self.results_dag.store_result(node_id, molded_output)
-                    #
-                    # For now, just do a placeholder:
-                    await asyncio.sleep(1.0)
-                    self.results_dag.store_result(node_id, f"Real result for node {node_id}")
-            except Exception as e:
-                # Mark node as failed if there's any exception
-                self.results_dag.mark_failed(node_id, str(e))
+        # Schedule tasks for each node in topological order so that parent's tasks exist
+        for node_id in nx.topological_sort(dag):
+            self.tasks[node_id] = asyncio.create_task(self.process_node(node_id, dag, mock))
+
+        # Await all node tasks concurrently
+        await asyncio.gather(*self.tasks.values())
 
         # Return JSON representation of the entire DAG’s results
         return self.results_dag.to_json()

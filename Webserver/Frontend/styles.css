@@ -1,3 +1,16 @@
+/* Existing CSS rules ... */
+
+/* Breathing (pulsing) animation for nodes in processing */
+@keyframes breathing {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.breathing {
+  animation: breathing 1s infinite;
+}
+
 /* Sidebar width control */
 .expanded {
   width: 25%;
@@ -6,13 +19,12 @@
   display: none !important;
 }
 
-/* Overall body background and text in dark mode */
+/* Dark mode styles and other overrides ... */
 html.dark-mode body {
-  background-color: #1a202c !important; /* Dark background */
+  background-color: #1a202c !important;
   color: white !important;
 }
 
-/* Panels that were light become dark, originally dark become light, etc. */
 html.dark-mode .user-info,
 html.dark-mode .chat-input-panel {
   background-color: #2d3748 !important;
@@ -35,14 +47,12 @@ html.dark-mode #chat-history {
   color: white !important;
 }
 
-/* Fix buttons and inputs in dark mode */
 html.dark-mode button,
 html.dark-mode input {
   background-color: #4a5568 !important;
   color: white !important;
 }
 
-/* Specific color overrides */
 html.dark-mode .bg-blue-500 {
   background-color: #90cdf4 !important;
   color: #1a202c !important;

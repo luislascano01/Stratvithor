@@ -4,70 +4,64 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LLM Chat Interface</title>
-  <!-- Include Tailwind CSS -->
+
+  <!-- Tailwind CSS via CDN (okay for dev, not recommended for production) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Link to our custom styles -->
+  <!-- D3.js -->
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <!-- Link to custom styles (including .breathing animation) -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="bg-gray-100 h-screen flex transition-all duration-300" id="body">
 
-  <!-- Fixed Sidebar Toggle Button (always visible) -->
-  <button
-    id="sidebarToggleButton"
-    class="fixed top-4 left-4 z-50 bg-gray-700 text-white p-2 rounded"
-    onclick="toggleSidebar()"
-  ></button>
+<!-- Sidebar for chat history (toggleable) -->
+<div id="sidebar" class="expanded bg-gray-800 text-white p-4 flex flex-col transition-all duration-300">
+  <h2 class="text-lg font-bold mb-4">Chat History</h2>
+  <ul id="chat-history" class="flex-1 overflow-y-auto space-y-2"></ul>
+  <button class="mt-4 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded" onclick="newChat()">New Report</button>
+</div>
 
-  <!-- Sidebar for chat history -->
-  <div id="sidebar" class="expanded bg-gray-800 text-white p-4 flex flex-col transition-all duration-300">
-    <h2 class="text-lg font-bold mb-4">Chat History</h2>
-    <ul id="chat-history" class="flex-1 overflow-y-auto space-y-2">
-      <!-- Chat history list items (placeholder) -->
-    </ul>
-    <button class="mt-4 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded" onclick="newChat()">New Report</button>
+<!-- Main Chat Area -->
+<div class="flex-1 flex flex-col relative">
+  <!-- User Info & Dark Mode Toggle -->
+  <div class="absolute top-4 right-4 bg-white shadow-md p-2 rounded flex items-center space-x-2 user-info">
+    <img src="https://placehold.co/40" alt="User Avatar" class="w-10 h-10 rounded-full" />
+    <span class="text-gray-700 font-semibold">Current User</span>
+    <button id="darkModeBtn" class="ml-4 bg-gray-700 text-white p-2 rounded" onclick="toggleDarkMode()">🌙</button>
   </div>
 
-  <!-- Main Chat Area -->
-  <div class="flex-1 flex flex-col relative">
-    <!-- User Information & Dark Mode Toggle -->
-    <div class="absolute top-4 right-4 bg-white shadow-md p-2 rounded flex items-center space-x-2 user-info">
-      <img src="https://via.placeholder.com/40" alt="User Avatar" class="w-10 h-10 rounded-full" />
-      <span class="text-gray-700 font-semibold">Current User</span>
-      <button id="darkModeBtn" class="ml-4 bg-gray-700 text-white p-2 rounded" onclick="toggleDarkMode()">🌙</button>
-    </div>
+  <!-- Chat Messages Container -->
+  <div class="flex-1 p-4 overflow-y-auto" id="chat-container">
+    <!-- We'll dynamically append user messages or error messages here -->
+  </div>
 
-    <!-- Chat Messages (initially for user input) -->
-    <div class="flex-1 p-4 overflow-y-auto" id="chat-container">
-      <!-- We will append user messages or system feedback here -->
-    </div>
-
-    <!-- Chat Input in the Middle -->
-    <div
-      class="p-4 bg-white border-t flex items-center justify-center absolute bottom-1/2 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-2/3 shadow-md rounded-lg chat-input-panel"
-      id="chat-input-panel"
+  <!-- Chat Input -->
+  <div id="chat-input-panel"
+       class="p-4 bg-white border-t flex items-center justify-center absolute
+                bottom-1/2 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-2/3 shadow-md rounded-lg">
+    <input
+            id="chat-input"
+            type="text"
+            class="flex-1 border rounded p-2"
+            placeholder="Type the company name..."
+            onkeydown="handleKey(event)"
+    />
+    <button
+            class="ml-2 bg-green-500 hover:bg-green-600 text-white p-2 rounded"
+            onclick="initiateReport()"
     >
-      <input
-        id="chat-input"
-        type="text"
-        class="flex-1 border rounded p-2"
-        placeholder="Type the company name..."
-        onkeydown="handleKey(event)"
-      />
-      <button class="ml-2 bg-green-500 hover:bg-green-600 text-white p-2 rounded" onclick="initiateReport()">
-        Send
-      </button>
-    </div>
-
-    <!-- DAG Updates Container (initially hidden) -->
-    <div id="dag-updates-container" class="hidden p-4">
-      <h2 class="text-xl font-bold mb-2">Report Progress</h2>
-      <div id="dag-updates" class="space-y-2">
-        <!-- We'll append real-time DAG node updates here -->
-      </div>
-    </div>
+      Send
+    </button>
   </div>
 
-  <!-- Link to our JavaScript file -->
-  <script src="script.js"></script>
+  <!-- DAG Updates Container (initially hidden, shows the D3 graph) -->
+  <div id="dag-updates-container" class="hidden p-4">
+    <h2 class="text-xl font-bold mb-2">Report Progress</h2>
+    <svg id="dag-svg" width="800" height="600" class="bg-white shadow-md rounded"></svg>
+  </div>
+</div>
+
+<!-- Link to our JavaScript file (must be after the DOM elements) -->
+<script src="script.js"></script>
 </body>
 </html>
