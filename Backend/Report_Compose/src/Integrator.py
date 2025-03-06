@@ -67,7 +67,7 @@ class Integrator:
 
             if mock:
                 # Simulate processing
-                process_time = abs(random.gauss(3, 2))
+                process_time = abs(random.gauss(10, 2))
                 await asyncio.sleep(process_time)
                 node_prompt = self.prompt_manager.get_prompt_by_id(node_id)
                 node_name = node_prompt["section_title"]

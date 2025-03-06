@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.handleKey = function(event) {
     if (event.key === 'Enter') {
       initiateReport();
+
     }
   };
 
@@ -61,6 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       if (!response.ok) throw new Error("Request failed with status " + response.status);
 
+
       const data = await response.json();
       const taskId = data.task_id;
 
@@ -68,6 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('dag-updates-container').classList.remove('hidden');
 
       openWebSocketForTask(taskId);
+
     } catch (err) {
       console.error("Error generating report:", err);
       const errorDiv = document.createElement('div');
@@ -132,28 +135,32 @@ document.addEventListener('DOMContentLoaded', function() {
         .on("end", dragended));
 
     simulation.on("tick", () => {
-      linkSelection
-          .attr("x1", d => d.source.x)
-          .attr("y1", d => d.source.y)
-          .attr("x2", d => d.target.x)
-          .attr("y2", d => d.target.y);
+        linkSelection
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
 
-      nodeSelection
-          .attr("cx", d => d.x)
-          .attr("cy", d => d.y);
+        nodeSelection
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y);
+    });
+
+    // ✅ Call autoCenterGraph only after the simulation stabilizes
+    simulation.on("end", () => {
+        console.log("Graph simulation stabilized. Auto-centering...");
+        autoCenterGraph();
     });
 
     // Enable zoom and pan
     svg.call(d3.zoom()
         .scaleExtent([0.5, 3])
         .on("zoom", function(event) {
-          g.attr("transform", event.transform);
+            g.attr("transform", event.transform);
         }));
+}
 
-    autoCenterGraph();
-  }
-
-  function autoCenterGraph() {
+function autoCenterGraph() {
     if (nodes.length === 0) return;
 
     const minX = d3.min(nodes, d => d.x);
@@ -167,10 +174,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const centerX = minX + graphWidth / 2;
     const centerY = minY + graphHeight / 2;
 
-    svg.transition().duration(750).attr("viewBox",
-        `${centerX - graphWidth / 2} ${centerY - graphHeight / 2} ${graphWidth * 1.5} ${graphHeight * 1.5}`
+    const scale = Math.min(
+        width / (graphWidth * 1.5),  // Scale to fit width
+        height / (graphHeight * 1.5) // Scale to fit height
     );
-  }
+
+    // Apply zoom and pan transformation
+    svg.transition()
+        .duration(750)
+        .call(
+            zoom.transform,
+            d3.zoomIdentity
+                .translate(width / 2, height / 2)
+                .scale(scale)
+                .translate(-centerX, -centerY)
+        );
+}
 
   // Drag event handlers
   function dragstarted(event, d) {
