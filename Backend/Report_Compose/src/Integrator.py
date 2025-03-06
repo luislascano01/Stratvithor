@@ -2,6 +2,8 @@ import asyncio
 import random
 
 import networkx as nx
+
+from Backend.Report_Compose.src.DataQuerier import DataQuerier
 from Backend.Report_Compose.src.ResultsDAG import ResultsDAG
 from Backend.Report_Compose.src.PromptManager import PromptManager
 
@@ -50,8 +52,14 @@ class Integrator:
         self.results_dag = ResultsDAG()
         self.tasks = {}
 
-    async def process_node(self, node_id: int, msg: str = "") -> str:
+    async def process_node(self, node_id: int, focus_message: str = "") -> str:
         result = "**Default Result**"
+        curr_prompt = self.prompt_manager.get_prompt_by_id(node_id)
+        querier = DataQuerier(curr_prompt, focus_message, "http://0.0.0.0:8383")
+        await querier.query_and_process()
+        online_data = querier.process_data()
+
+
         return result
 
     async def queue_node(self, node_id: int, dag: nx.DiGraph, mock: bool):

@@ -15,9 +15,9 @@ class DataQuerier:
         general_prompt: str,
         focus_message: str,
         search_api_url: str,
-        credentials: str = "DEFAULT_CREDENTIALS",
+        credentials: str = "./Credentials/Credentials.yaml",
         operating_path: str = "/tmp",
-        llm_api_url: str = "http://default-llm-api",
+        llm_api_url: str = "http://localhost:11434/api/chat",
         cse_id: Optional[str] = None
     ):
         """
