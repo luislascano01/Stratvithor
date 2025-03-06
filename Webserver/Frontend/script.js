@@ -32,6 +32,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
 
+let zoom = d3.zoom()
+    .scaleExtent([0.5, 3]) // Set zoom limits
+    .on("zoom", function(event) {
+        g.attr("transform", event.transform);
+    });
+
+
   // ----- Initiate Report Generation -----
   window.initiateReport = async function() {
     const input = document.getElementById('chat-input');
@@ -160,6 +167,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }));
 }
 
+
+
 function autoCenterGraph() {
     if (nodes.length === 0) return;
 
@@ -171,12 +180,12 @@ function autoCenterGraph() {
     const graphWidth = maxX - minX;
     const graphHeight = maxY - minY;
 
-    const centerX = minX + graphWidth / 2;
-    const centerY = minY + graphHeight / 2;
+    const centerX = minX + graphWidth / 1;
+    const centerY = minY + graphHeight / 1;
 
     const scale = Math.min(
-        width / (graphWidth * 1.5),  // Scale to fit width
-        height / (graphHeight * 1.5) // Scale to fit height
+        width / (graphWidth*2),  // Scale to fit width
+        height / (graphHeight*2) // Scale to fit height
     );
 
     // Apply zoom and pan transformation
@@ -185,7 +194,7 @@ function autoCenterGraph() {
         .call(
             zoom.transform,
             d3.zoomIdentity
-                .translate(width / 2, height / 2)
+                .translate(width / 5, height / 5)
                 .scale(scale)
                 .translate(-centerX, -centerY)
         );
@@ -263,3 +272,18 @@ function autoCenterGraph() {
   centerBtn.onclick = autoCenterGraph;
   document.getElementById("dag-updates-container").prepend(centerBtn);
 });
+
+window.toggleChatHistory = function() {
+    const sidebar = document.getElementById('sidebar');
+    const toggleButton = document.getElementById('toggle-sidebar-btn');
+
+    // Toggle hidden class
+    sidebar.classList.toggle('hidden');
+
+    // Optionally change button text
+    if (sidebar.classList.contains('hidden')) {
+        toggleButton.innerText = "📂 Show Chat History";
+    } else {
+        toggleButton.innerText = "📂 Hide Chat History";
+    }
+};

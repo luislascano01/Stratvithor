@@ -30,6 +30,13 @@
     <button id="darkModeBtn" class="ml-4 bg-gray-700 text-white p-2 rounded" onclick="toggleDarkMode()">🌙</button>
   </div>
 
+  <button id="toggle-sidebar-btn"
+        class="absolute top-4 left-4 bg-gray-600 text-white px-3 py-2 rounded"
+        onclick="toggleChatHistory()">
+    📂 Toggle Chat History
+</button>
+
+
   <!-- Chat Messages Container -->
   <div class="flex-1 p-4 overflow-y-auto" id="chat-container">
     <!-- We'll dynamically append user messages or error messages here -->
@@ -57,7 +64,7 @@
   <!-- DAG Updates Container (initially hidden, shows the D3 graph) -->
   <div id="dag-updates-container" class="hidden p-4">
     <h2 class="text-xl font-bold mb-2">Report Progress</h2>
-    <svg id="dag-svg" width="800" height="750" class="bg-white shadow-md rounded"></svg>
+    <svg id="dag-svg" width="1000" height="750" class="bg-white shadow-md rounded"></svg>
   </div>
 </div>
 

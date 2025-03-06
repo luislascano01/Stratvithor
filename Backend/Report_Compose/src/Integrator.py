@@ -76,6 +76,9 @@ class Integrator:
             else:
                 # Real logic...
                 await asyncio.sleep(1.0)
+
+
+
                 self.results_dag.store_result(node_id, f"Real result for node {node_id}")
         except Exception as e:
             self.results_dag.mark_failed(node_id, str(e))
