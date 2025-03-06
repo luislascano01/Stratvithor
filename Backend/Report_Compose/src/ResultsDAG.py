@@ -54,6 +54,14 @@ class ResultsDAG:
         """
         return json.dumps(self.results, indent=2)
 
+    def mark_processing(self, node_id: int, msg: str = "") -> None:
+        """
+        Mark a node as 'processing' with an optional message,
+        then push an update event to our queue.
+        """
+        self.results[node_id] = {"status": "processing", "result": msg}
+        self._updates_queue.put_nowait((node_id, self.results[node_id]))
+
     async def watch_updates(self) -> AsyncGenerator[Tuple[int, Dict[str, Any]], None]:
         """
         An async generator that yields (node_id, node_data) whenever

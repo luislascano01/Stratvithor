@@ -1,4 +1,6 @@
 import asyncio
+import random
+
 import networkx as nx
 from Backend.Report_Compose.src.ResultsDAG import ResultsDAG
 from Backend.Report_Compose.src.PromptManager import PromptManager
@@ -55,22 +57,24 @@ class Integrator:
           2. Run the node's processing (mock or real).
           3. Store the result or mark failure.
         """
-        # Get all parent nodes for the current node
         parent_ids = list(dag.predecessors(node_id))
         if parent_ids:
-            # Wait concurrently for all parent's tasks to finish
             await asyncio.gather(*(self.tasks[parent_id] for parent_id in parent_ids))
 
         try:
+            # <--- 1) Mark the node as processing right here
+            self.results_dag.mark_processing(node_id, "Node is currently being explored")
+
             if mock:
-                # Simulate processing delay
-                await asyncio.sleep(2.0)
+                # Simulate processing
+                process_time = abs(random.gauss(3, 2))
+                await asyncio.sleep(process_time)
                 node_prompt = self.prompt_manager.get_prompt_by_id(node_id)
                 node_name = node_prompt["section_title"]
                 result = f"[MOCK] Completed node {node_id} ({node_name})"
                 self.results_dag.store_result(node_id, result)
             else:
-                # Replace with real DataQuerier/DataMolder logic
+                # Real logic...
                 await asyncio.sleep(1.0)
                 self.results_dag.store_result(node_id, f"Real result for node {node_id}")
         except Exception as e:
