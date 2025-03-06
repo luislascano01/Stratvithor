@@ -85,7 +85,8 @@ class Integrator:
 
     async def generate_report(
             self,
-            focus_text: str,
+            company_name: str,
+            custom_topic_focuser: str = "",
             mock: bool = False
     ) -> str:
         """
