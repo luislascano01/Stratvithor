@@ -1,6 +1,13 @@
 
 # Stratvithor
+
+
                 - An AI-Powered Expanding Knowledge Ecosystem
+.
+
+                        Project Under Construction
+
+                🚧🚧🚧🚧🚧🚧 🚧🚧🚧🚧🚧🚧   🚧🚧🚧🚧🚧🚧 🚧🚧🚧🚧🚧🚧
 
 Stratvithor redefines the way insights are gathered, structured, and continuously updated. It is a **multi-dimensional intelligence dashboard** that adapts in real time, integrating AI-driven automation with live data pipelines. Users can **design, explore, and refine structured knowledge environments**, ensuring that critical information remains current, relevant, and actionable.  
 
@@ -61,5 +68,47 @@ Stratvithor transforms static reporting into an **ever-evolving intelligence net
 
 ## Deployment
 
-The system is containerized using Docker for easy deployment. To run locally:
+The system is multi-containerized using Docker for easy deployment. 
 
+### Set-up:
+    
+ Clone repo
+```console
+    git clone https://github.com/luislascano01/Stratvithor
+ ```
+Navigate to directory and make credentials file
+```console
+    cd Stratvithor
+    cd Credentials
+    touch Credential.yaml
+```
+
+Add valid credentials for OpenAI and Google Search Engine inside Credential.yaml
+    
+```yaml
+  API_Keys:
+      Google_Cloud: "G-Cloud_Keys"
+      OpenAI: "OpenAI Keys"
+
+  Online_Tool_ID:
+    Custom_G_Search: 'G_Custom_Search_CSE_ID'
+```
+
+### Execution:
+
+```console
+    docker compose build
+    docker compose up
+```
+To access front end:
+```
+    localhost:5155
+```
+
+## Prompt Settings
+
+You may access the prompts manually under "Prompts folder"
+
+## Copyright
+
+Open to collaborate under open source agreement
