@@ -45,6 +45,7 @@ html.dark-mode #chat-container,
 html.dark-mode #chat-history {
   background-color: #1a202c !important;
   color: white !important;
+  width: 15%;
 }
 
 html.dark-mode button,
@@ -81,4 +82,18 @@ html.dark-mode .bg-green-500 {
   /* Apply the keyframes animation. 2s = duration, infinite repeats forever,
      ease-in-out makes it a smooth interpolation, but use what you prefer. */
   animation: breathing-color 4s ease-in-out infinite;
+}
+
+#node-detail-pane {
+  position: fixed;
+  right: 0;
+  top: 10%;
+  width: 300px;
+  height: 100%;
+  overflow-y: auto;
+  background-color: #fff;
+  border-left: 1px solid #ccc;
+  padding: 1rem;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+  z-index: 1000;
 }

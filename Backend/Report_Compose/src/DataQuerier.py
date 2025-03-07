@@ -1,3 +1,5 @@
+
+from datetime import date
 import aiohttp
 import asyncio
 import logging
@@ -58,6 +60,7 @@ class DataQuerier:
             "cse_id": self.cse_id
         }
         logging.info("🔍 Sending POST request to SearchIntegrator API...")
+        logging.info("Payload: {}".format(json.dumps(payload)))
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(self.search_api_url, json=payload) as response:
@@ -119,8 +122,11 @@ async def main():
     # Some comment
 
     # Example general prompt and focus message.
-    general_prompt = "Explain in depth all you can about the company's business, including all company segments. You can create tables with the evolution of sales of all different relevant segments, quarterly NOI. Give all relevant information found on how the company is operating. This is the most important section, be as thorough as possible."
-    focus_message = "Acer Technological Company"
+    today = date.today()
+    today_str = today.strftime('%Y-%m-%d')
+
+    general_prompt = "North America Politics"
+    focus_message = "Canada vs. US" + today_str
 
     # Instantiate the DataQuerier with the above parameters.
     dq = DataQuerier(

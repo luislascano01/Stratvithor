@@ -289,9 +289,15 @@ document.addEventListener('DOMContentLoaded', function () {
         ws.onopen = () => console.log("WebSocket connected for task ID:", taskId);
 
         ws.onmessage = event => {
+            console.log("Raw WebSocket message received:", event.data);
             const message = JSON.parse(event.data);
-            if (message.type === "init") initGraph(message.dag);
-            else if (message.type === "update") updateNodeStatus(message.node_id, message.status, message.result);
+            console.log("Parsed message:", message);
+            if (message.type === "init") {
+                initGraph(message.dag);
+            } else if (message.type === "update") {
+                console.log(`Updating node ${message.node_id}: status ${message.status}`);
+                updateNodeStatus(message.node_id, message.status, message.result);
+            }
         };
 
         ws.onclose = () => console.log("WebSocket closed for task:", taskId);
@@ -300,31 +306,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ----- Node Status Updates with Breathing Animation -----
     function updateNodeStatus(nodeId, status, result) {
-        const node = nodes.find(n => n.id == nodeId);
-        if (!node) return;
+        const nodeSel = d3.selectAll(".nodes circle").filter(d => d.id == nodeId);
+        if (nodeSel.empty()) {
+            console.warn("No node found with id:", nodeId);
+            return;
+        }
 
         let newColor = "#ccc";
         if (status === "processing") {
             newColor = "#FFD700"; // yellow
-            svg.selectAll("circle")
-                .filter(d => d.id == nodeId)
-                .classed("breathing", true);
+            nodeSel.classed("breathing", true);
         } else if (status === "complete") {
             newColor = "#32CD32"; // green
-            svg.selectAll("circle")
-                .filter(d => d.id == nodeId)
-                .classed("breathing", false);
+            nodeSel.classed("breathing", false);
         } else if (status === "failed") {
             newColor = "#FF4500"; // orange-red
-            svg.selectAll("circle")
-                .filter(d => d.id == nodeId)
-                .classed("breathing", false);
+            nodeSel.classed("breathing", false);
         }
 
-        svg.selectAll("circle")
-            .filter(d => d.id == nodeId)
-            .transition().duration(500)
-            .attr("fill", newColor);
+        nodeSel.transition().duration(500).attr("fill", newColor);
     }
 
     // Add auto-center button

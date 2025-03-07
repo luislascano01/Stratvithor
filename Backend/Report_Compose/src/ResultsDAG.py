@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 from typing import Any, Dict, Optional, Tuple, AsyncGenerator
 
 
@@ -31,6 +32,10 @@ class ResultsDAG:
         Mark a node as 'complete' with the given result,
         then push an update event to our queue.
         """
+        print("*"*10)
+        print(f'Completed node {node_id}')
+        print(f'Result: {result}')
+        print("*" * 10)
         self.results[node_id] = {"status": "complete", "result": result}
         self._updates_queue.put_nowait((node_id, self.results[node_id]))
 

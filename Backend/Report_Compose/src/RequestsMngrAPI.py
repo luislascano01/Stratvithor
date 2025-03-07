@@ -1,3 +1,4 @@
+
 import os
 import uuid
 import time
@@ -12,6 +13,7 @@ from pydantic import BaseModel
 from typing import Dict
 
 from Backend.Report_Compose.src.Integrator import Integrator
+
 
 # ----- Setup FastAPI -----
 app = FastAPI()
@@ -81,6 +83,7 @@ async def generate_report(request: ReportRequest, background_tasks: BackgroundTa
     """
     Start generating a report in the background. Returns a task_id.
     """
+    logging.info(f'Start generating a report in the background...')
     prompt_name = request.prompt_name
 
     # Validate that the prompt exists
@@ -90,12 +93,14 @@ async def generate_report(request: ReportRequest, background_tasks: BackgroundTa
     prompt_path = map_name_to_file[prompt_name]
 
     task_id = str(uuid.uuid4())
+    company_name = request.company_name
+    logging.info(f"Generating report with focus prompt: {company_name}")
     # Create an Integrator with the YAML path
     integrator = Integrator(yaml_file_path=prompt_path)
 
     # Store in dictionary so we can reference it
     active_tasks[task_id] = {"integrator": integrator, "status": "in-progress", "report": None}
-
+    logging.info(f"Mock status for task '{task_id}' : {request.mock}")
     # Kick off the background task
     background_tasks.add_task(run_report_task, task_id, request.company_name, request.mock)
 
@@ -151,21 +156,23 @@ async def websocket_task_updates(websocket: WebSocket, task_id: str):
     }
 
     await websocket.accept()
-
-    # Send initial DAG structure message
     await websocket.send_json({"type": "init", "dag": dag_data})
+    logging.info("[WebSocket] Sent initial DAG structure.")
 
     try:
         async for (node_id, node_data) in results_dag.watch_updates():
-            await websocket.send_json({
+            update = {
                 "type": "update",
                 "task_id": task_id,
                 "node_id": node_id,
                 "status": node_data["status"],
                 "result": node_data["result"]
-            })
+            }
+            await websocket.send_json(update)
+            logging.info(f"[WebSocket] Sent update: {update}")
+        # End of async loop.
     except WebSocketDisconnect:
-        logging.info(f"WebSocket disconnected for task_id={task_id}")
+        logging.info(f"[WebSocket] Disconnected for task_id={task_id}")
 
 # ----------------------------------------------------------------------
 #   MAIN ENTRY POINT to run the server on port 8181
@@ -173,3 +180,5 @@ async def websocket_task_updates(websocket: WebSocket, task_id: str):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("RequestsMngrAPI:app", host="0.0.0.0", port=8181, reload=True)
+
+
