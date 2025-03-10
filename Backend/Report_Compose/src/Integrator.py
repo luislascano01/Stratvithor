@@ -92,12 +92,15 @@ class Integrator:
 
     async def process_node(self, node_id: int, focus_message) -> tuple[None, None] | tuple[str, any]:
         curr_prompt = self.prompt_manager.get_prompt_by_id(node_id)
+
         if curr_prompt['system'] is True:
             logging.info(f"Skipping node {node_id} since it's system prompt")
             return curr_prompt, {"Online_Data": "NA_system_node"}
+
         querier = DataQuerier(curr_prompt['text'], focus_message, "http://0.0.0.0:8383/search")
         print(f'Processing node {node_id} with prompt: {json.dumps(curr_prompt, indent=4)}')
         await querier.query_and_process()
+
         online_data = querier.process_data()
         molder = DataMolder("gpt-3.5-turbo", self.openAI_API_key)
         ancestor_messages = self.get_ancestor_chat_hist(node_id)

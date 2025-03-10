@@ -368,25 +368,73 @@ window.toggleChatHistory = function () {
 
 const nodeDetails = {};
 
+
 function displayNodeDetails(nodeId, details) {
     const chatHistory = document.getElementById("node-view");
     // Clear any existing content
     chatHistory.innerHTML = "";
 
-    // Create elements to show node details
+    // 1) Create a header for the node number
     const nodeHeader = document.createElement("h3");
-    nodeHeader.innerText = "Node " + nodeId;
+    nodeHeader.className = "text-base font-semibold mb-1";
+    nodeHeader.innerText = `Node ${nodeId}`;
 
+    // 2) Show status
     const statusPara = document.createElement("p");
-    statusPara.innerText = "Status: " + details.status;
+    statusPara.className = "text-sm text-gray-300 mb-3";
+    statusPara.innerText = `Status: ${details.status}`;
 
-    const resultPre = document.createElement("pre");
-    resultPre.innerText = JSON.stringify(details.result, null, 2);
+    // 3) Safely parse the node's result into an object
+    //    (it might already be an object or might be a JSON string)
+    let resultObj = details.result;
+    if (typeof resultObj === "string") {
+        try {
+            resultObj = JSON.parse(resultObj);
+        } catch (err) {
+            console.warn("Result is not valid JSON, using raw string.");
+        }
+    }
+    // Fallback to empty object if parsing fails
+    resultObj = resultObj || {};
 
-    // Append the details to the chat history (or another right‑pane container)
+    // 4) Extract relevant fields from the result
+    //    The user mentioned "section_tile" but it might be a typo.
+    //    Check for "section_title" or "section_tile".
+    const sectionTitle = resultObj.section_title || resultObj.section_tile || "Untitled Section";
+    const llmResponse  = resultObj.llm || "No LLM response found.";
+    const onlineData   = resultObj.online_data || "No online data found.";
+
+    // 5) Section Title in large bold letters
+    const sectionTitleEl = document.createElement("h2");
+    sectionTitleEl.className = "text-lg font-bold mb-2";
+    sectionTitleEl.innerText = sectionTitle;
+
+    // 6) Create a separator
+    const separator1 = document.createElement("hr");
+    separator1.className = "my-2 border-gray-500";
+
+    // 7) LLM response
+    const llmDiv = document.createElement("div");
+    llmDiv.className = "whitespace-pre-wrap mb-4";
+    llmDiv.innerText = llmResponse;
+
+    // 8) Another separator
+    const separator2 = document.createElement("hr");
+    separator2.className = "my-2 border-gray-500";
+
+    // 9) Online data at the end
+    const onlineDataDiv = document.createElement("div");
+    onlineDataDiv.className = "text-sm text-gray-300 whitespace-pre-wrap";
+    onlineDataDiv.innerText = `Online Data:\n${onlineData}`;
+
+    // 10) Append all elements to the node-view container in desired order
     chatHistory.appendChild(nodeHeader);
     chatHistory.appendChild(statusPara);
-    chatHistory.appendChild(resultPre);
+    chatHistory.appendChild(sectionTitleEl);
+    chatHistory.appendChild(separator1);
+    chatHistory.appendChild(llmDiv);
+    chatHistory.appendChild(separator2);
+    chatHistory.appendChild(onlineDataDiv);
 }
 
 
