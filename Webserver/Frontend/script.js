@@ -367,8 +367,6 @@ window.toggleChatHistory = function () {
 
 
 const nodeDetails = {};
-
-
 function displayNodeDetails(nodeId, details) {
     const chatHistory = document.getElementById("node-view");
     // Clear any existing content
@@ -385,7 +383,6 @@ function displayNodeDetails(nodeId, details) {
     statusPara.innerText = `Status: ${details.status}`;
 
     // 3) Safely parse the node's result into an object
-    //    (it might already be an object or might be a JSON string)
     let resultObj = details.result;
     if (typeof resultObj === "string") {
         try {
@@ -394,15 +391,18 @@ function displayNodeDetails(nodeId, details) {
             console.warn("Result is not valid JSON, using raw string.");
         }
     }
-    // Fallback to empty object if parsing fails
     resultObj = resultObj || {};
 
-    // 4) Extract relevant fields from the result
-    //    The user mentioned "section_tile" but it might be a typo.
-    //    Check for "section_title" or "section_tile".
+    // 4) Extract relevant fields
     const sectionTitle = resultObj.section_title || resultObj.section_tile || "Untitled Section";
-    const llmResponse  = resultObj.llm || "No LLM response found.";
-    const onlineData   = resultObj.online_data || "No online data found.";
+    // If there's no LLM response, we can still display other text (like online data).
+    // So we'll handle that gracefully:
+    let llmResponse = resultObj.llm;
+    if (!llmResponse) {
+        llmResponse = "No LLM response found.";  // fallback text
+    }
+
+    const onlineData = resultObj.online_data || "No online data found.";
 
     // 5) Section Title in large bold letters
     const sectionTitleEl = document.createElement("h2");
@@ -413,10 +413,30 @@ function displayNodeDetails(nodeId, details) {
     const separator1 = document.createElement("hr");
     separator1.className = "my-2 border-gray-500";
 
-    // 7) LLM response
+    // 7) Convert LLM response from markdown to HTML
     const llmDiv = document.createElement("div");
     llmDiv.className = "whitespace-pre-wrap mb-4";
-    llmDiv.innerText = llmResponse;
+
+    // If llmResponse is not a string (e.g. an object), convert to a JSON string
+    let finalMarkdown = llmResponse;
+    if (typeof llmResponse !== "string") {
+        finalMarkdown = JSON.stringify(llmResponse, null, 2);
+    }
+
+    // Create a custom renderer to ensure headings are at least <h4>
+    const renderer = new marked.Renderer();
+    renderer.heading = function (text, level, raw, slugger) {
+        // If level is not a valid number, default to 4
+        if (!level || isNaN(level)) {
+            level = 4;
+        } else {
+            level = Math.max(level, 4);
+        }
+        return `<h${level}>${text}</h${level}>`;
+    };
+
+    const htmlContent = marked.parse(finalMarkdown, { renderer });
+    llmDiv.innerHTML = htmlContent;
 
     // 8) Another separator
     const separator2 = document.createElement("hr");
@@ -427,7 +447,7 @@ function displayNodeDetails(nodeId, details) {
     onlineDataDiv.className = "text-sm text-gray-300 whitespace-pre-wrap";
     onlineDataDiv.innerText = `Online Data:\n${onlineData}`;
 
-    // 10) Append all elements to the node-view container in desired order
+    // 10) Append all elements to the node-view container
     chatHistory.appendChild(nodeHeader);
     chatHistory.appendChild(statusPara);
     chatHistory.appendChild(sectionTitleEl);
@@ -436,7 +456,6 @@ function displayNodeDetails(nodeId, details) {
     chatHistory.appendChild(separator2);
     chatHistory.appendChild(onlineDataDiv);
 }
-
 
 document.addEventListener('DOMContentLoaded', function () {
     // ... existing code ...
@@ -453,11 +472,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.addEventListener('mousemove', function (e) {
         if (!isDragging) return;
-        // Adjust the sidebar width based on mouse x-coordinate
-        // You can set minimum and maximum widths if desired
         let newWidth = e.clientX;
-        newWidth = Math.max(newWidth, 150); // Minimum sidebar width (150px)
-        newWidth = Math.min(newWidth, 500); // Maximum sidebar width (500px)
+        newWidth = Math.max(newWidth, 150); // Minimum sidebar width
+
+        // If you want no maximum at all, remove the line below:
+        // newWidth = Math.min(newWidth, 500);
+
+        // If you prefer to keep a small margin on the right:
+        // const maxWidth = window.innerWidth - 50; // 50px margin
+        // newWidth = Math.min(newWidth, maxWidth);
+
         sidebar.style.width = newWidth + 'px';
     });
 
@@ -472,7 +496,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // Initialize global variable
-window.mock_global = true;
+window.mock_global = false;
 
 // Define a function to toggle the variable and update the button text
 window.toggleMock = function () {

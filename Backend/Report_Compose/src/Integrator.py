@@ -95,13 +95,16 @@ class Integrator:
 
         if curr_prompt['system'] is True:
             logging.info(f"Skipping node {node_id} since it's system prompt")
-            return curr_prompt, {"Online_Data": "NA_system_node"}
+            return "**This is a system prompt**", {"Online_Data": "NA_system_node"}
 
         querier = DataQuerier(curr_prompt['text'], focus_message, "http://0.0.0.0:8383/search")
         print(f'Processing node {node_id} with prompt: {json.dumps(curr_prompt, indent=4)}')
-        await querier.query_and_process()
+        #await querier.query_and_process()
 
-        online_data = querier.process_data()
+        #online_data = querier.get_processed_data()
+        online_data = "Mock Online Data. Please Ignore"
+        print(f'Count of articles found for node {node_id}: {len(online_data)}')
+
         molder = DataMolder("gpt-3.5-turbo", self.openAI_API_key)
         ancestor_messages = self.get_ancestor_chat_hist(node_id)
         response = await molder.process_data(online_data, ancestor_messages, focus_message)
@@ -199,7 +202,7 @@ class Integrator:
             node_name = node_prompt["section_title"]
             if mock:
                 # Simulate processing
-                process_time = abs(random.gauss(3, 2))
+                process_time = abs(random.gauss(5, 2))
                 await asyncio.sleep(process_time)
                 result = {'llm': "Some llm response", "online_data": "some_online_data"}
             else:
