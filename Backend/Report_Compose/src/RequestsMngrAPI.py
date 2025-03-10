@@ -83,6 +83,9 @@ async def generate_report(request: ReportRequest, background_tasks: BackgroundTa
     """
     prompt_name = request.prompt_name
 
+    company_name = request.company_name
+    logging.info(f"Generating report with focus prompt: {company_name}")
+
     # Validate that the prompt exists
     if prompt_name not in map_name_to_file:
         raise HTTPException(status_code=400, detail=f"Invalid prompt name: {prompt_name}")
@@ -108,7 +111,7 @@ async def run_report_task(task_id: str, company_name: str, mock: bool):
         integrator = active_tasks[task_id]["integrator"]
         # Call the integrator's generate_report
         # This will fill the results in integrator.results_dag
-        final_report_json = await integrator.generate_report(company_name, "", mock=mock)
+        final_report_json = await integrator.generate_report(company_name, mock=mock)
 
         # Mark the task as complete
         active_tasks[task_id]["status"] = "completed"

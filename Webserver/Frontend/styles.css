@@ -42,7 +42,7 @@ html.dark-mode #sidebar button {
 }
 
 html.dark-mode #chat-container,
-html.dark-mode #chat-history {
+html.dark-mode #node-view {
   background-color: #1a202c !important;
   color: white !important;
 }

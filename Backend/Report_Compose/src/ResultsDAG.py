@@ -26,7 +26,7 @@ class ResultsDAG:
         """
         self.results[node_id] = {"status": "pending", "result": None}
 
-    def store_result(self, node_id: int, result: Any) -> None:
+    def  store_result(self, node_id: int, result: Any) -> None:
         """
         Mark a node as 'complete' with the given result,
         then push an update event to our queue.

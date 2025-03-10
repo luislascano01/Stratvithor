@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 body: JSON.stringify({
                     company_name: companyName,
-                    mock: true,
+                    mock: mock_global,
                     prompt_name: selectedPrompt  // Include the selected prompt
                 })
             });
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("stroke", "#999")
             .attr("stroke-width", 2);
 
-        // Draw nodes
+        // Draw nodes and add click listener
         nodeSelection = g.append("g")
             .attr("class", "nodes")
             .selectAll("circle")
@@ -193,7 +193,14 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("r", 20)
             .attr("fill", "#ccc")
             .attr("stroke", "#333")
-            .attr("stroke-width", 1.5);
+            .attr("stroke-width", 1.5)
+            .on("click", (event, d) => {
+                // On click, fetch the node details from the global store
+                const details = nodeDetails[d.id];
+                if (details) {
+                    displayNodeDetails(d.id, details);
+                }
+            });
 
         // Tooltips
         nodeSelection.append("title").text(d => d.label);
@@ -291,7 +298,15 @@ document.addEventListener('DOMContentLoaded', function () {
         ws.onmessage = event => {
             const message = JSON.parse(event.data);
             if (message.type === "init") initGraph(message.dag);
-            else if (message.type === "update") updateNodeStatus(message.node_id, message.status, message.result);
+            else if (message.type === "update") {
+                updateNodeStatus(message.node_id, message.status, message.result);
+                nodeDetails[message.node_id] = {
+                    status: message.status,
+                    result: message.result
+                };
+            }
+
+
         };
 
         ws.onclose = () => console.log("WebSocket closed for task:", taskId);
@@ -348,4 +363,98 @@ window.toggleChatHistory = function () {
     } else {
         toggleButton.innerText = "📂 Hide Chat History";
     }
+}
+
+
+const nodeDetails = {};
+
+function displayNodeDetails(nodeId, details) {
+    const chatHistory = document.getElementById("node-view");
+    // Clear any existing content
+    chatHistory.innerHTML = "";
+
+    // Create elements to show node details
+    const nodeHeader = document.createElement("h3");
+    nodeHeader.innerText = "Node " + nodeId;
+
+    const statusPara = document.createElement("p");
+    statusPara.innerText = "Status: " + details.status;
+
+    const resultPre = document.createElement("pre");
+    resultPre.innerText = JSON.stringify(details.result, null, 2);
+
+    // Append the details to the chat history (or another right‑pane container)
+    chatHistory.appendChild(nodeHeader);
+    chatHistory.appendChild(statusPara);
+    chatHistory.appendChild(resultPre);
+}
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    // ... existing code ...
+
+    // ----- Separator Drag Functionality for Sidebar Resizing -----
+    const separator = document.getElementById('separator');
+    const sidebar = document.getElementById('sidebar');
+    let isDragging = false;
+
+    separator.addEventListener('mousedown', function (e) {
+        isDragging = true;
+        document.body.style.cursor = 'ew-resize';
+    });
+
+    document.addEventListener('mousemove', function (e) {
+        if (!isDragging) return;
+        // Adjust the sidebar width based on mouse x-coordinate
+        // You can set minimum and maximum widths if desired
+        let newWidth = e.clientX;
+        newWidth = Math.max(newWidth, 150); // Minimum sidebar width (150px)
+        newWidth = Math.min(newWidth, 500); // Maximum sidebar width (500px)
+        sidebar.style.width = newWidth + 'px';
+    });
+
+    document.addEventListener('mouseup', function (e) {
+        if (isDragging) {
+            isDragging = false;
+            document.body.style.cursor = 'default';
+        }
+    });
+
+    // ... rest of your existing code ...
+});
+
+// Initialize global variable
+window.mock_global = true;
+
+// Define a function to toggle the variable and update the button text
+window.toggleMock = function () {
+    window.mock_global = !window.mock_global;
+    const btn = document.getElementById("toggle-mock-button");
+    btn.innerText = "Mock: " + (window.mock_global ? "ON" : "OFF");
+    console.log("mock_global toggled: " + window.mock_global);
 };
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Existing code...
+
+    // Create the toggle button element
+    const toggleMockButton = document.createElement("button");
+    toggleMockButton.id = "toggle-mock-button";
+    toggleMockButton.innerText = "Mock: OFF"; // Initial text when mock_global is false
+    toggleMockButton.className = "p-2 bg-green-500 text-white rounded m-2";
+
+    // Append the button to an appropriate container.
+    // Here, we append it to the user-info container if available; otherwise, to the body.
+    const userInfoDiv = document.querySelector('.user-info');
+    if (userInfoDiv) {
+        userInfoDiv.appendChild(toggleMockButton);
+    } else {
+        document.body.appendChild(toggleMockButton);
+    }
+
+    // Add click listener to toggle the global variable
+    toggleMockButton.addEventListener('click', window.toggleMock);
+
+    // ... rest of your existing code ...
+});
+

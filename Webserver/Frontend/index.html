@@ -16,10 +16,15 @@
 
 <!-- Sidebar for chat history (toggleable) -->
 <div id="sidebar" class="expanded bg-gray-800 text-white p-4 flex flex-col transition-all duration-300">
-    <h2 class="text-lg font-bold mb-4">Chat History</h2>
-    <ul id="chat-history" class="flex-1 overflow-y-auto space-y-2"></ul>
+    <h2 class="text-lg font-bold mb-4">Node-Prompt View</h2>
+    <ul id="node-view" class="flex-1 overflow-y-auto space-y-2">
+        <!-- Node details will be inserted here; overflow-y-auto ensures vertical scrolling -->
+    </ul>
     <button class="mt-4 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded" onclick="newChat()">New Report</button>
 </div>
+
+<!-- Draggable Separator -->
+<div id="separator" class="w-2 bg-gray-400 cursor-ew-resize"></div>
 
 <!-- Main Chat Area -->
 <div class="flex-1 flex flex-col relative">
@@ -28,16 +33,13 @@
         <div class="flex items-center space-x-2">
             <img src="https://placehold.co/40" alt="User Avatar" class="w-10 h-10 rounded-full"/>
             <span class="text-gray-700 font-semibold">Current User</span>
-            <button id="darkModeBtn" class="ml-4 bg-gray-700 text-white p-2 rounded" onclick="toggleDarkMode()">🌙
-            </button>
+            <button id="darkModeBtn" class="ml-4 bg-gray-700 text-white p-2 rounded" onclick="toggleDarkMode()">🌙</button>
         </div>
-
         <!-- Dropdown Menu for Prompt Set Selection -->
         <select id="prompt-set-selector" class="p-2 border rounded bg-gray-100 shadow-md">
             <option value="">Loading prompts...</option>
         </select>
     </div>
-
 
     <button id="toggle-sidebar-btn"
             class="absolute top-4 left-4 bg-gray-600 text-white px-3 py-2 rounded"
@@ -45,27 +47,18 @@
         📂 Toggle Chat History
     </button>
 
-
     <!-- Chat Messages Container -->
     <div class="flex-1 p-4 overflow-y-auto" id="chat-container">
-        <!-- We'll dynamically append user messages or error messages here -->
+        <!-- Chat messages will be dynamically appended here -->
     </div>
 
     <!-- Chat Input -->
     <div id="chat-input-panel"
          class="p-4 bg-white border-t flex items-center justify-center absolute
-                bottom-1/2 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-2/3 shadow-md rounded-lg">
-        <input
-                id="chat-input"
-                type="text"
-                class="flex-1 border rounded p-2"
-                placeholder="Type the company name..."
-                onkeydown="handleKey(event)"
-        />
-        <button
-                class="ml-2 bg-green-500 hover:bg-green-600 text-white p-2 rounded"
-                onclick="initiateReport()"
-        >
+                  bottom-1/2 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-2/3 shadow-md rounded-lg">
+        <input id="chat-input" type="text" class="flex-1 border rounded p-2" placeholder="Type the company name..."
+               onkeydown="handleKey(event)" />
+        <button class="ml-2 bg-green-500 hover:bg-green-600 text-white p-2 rounded" onclick="initiateReport()">
             Send
         </button>
     </div>
