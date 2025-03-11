@@ -13,6 +13,8 @@ from Backend.Report_Compose.src.DataMolder import DataMolder
 from Backend.Report_Compose.src.DataQuerier import DataQuerier
 from Backend.Report_Compose.src.ResultsDAG import ResultsDAG
 from Backend.Report_Compose.src.PromptManager import PromptManager
+import json
+import httpx
 
 
 def load_openai_api_key(yaml_file_path: str) -> str:
@@ -91,6 +93,21 @@ class Integrator:
         self.focus_message = "Default Focus Message"
         self.web_search = True
 
+    async def get_search_api_url(self):
+        # List candidate base URLs in order of preference.
+        candidates = ["http://localhost:8383", "http://web_search_api:8383"]
+        async with httpx.AsyncClient() as client:
+            for base_url in candidates:
+                health_url = f"{base_url}/health"
+                try:
+                    response = await client.get(health_url, timeout=2.0)
+                    if response.status_code == 200 and response.json().get("status") == "ok":
+                        # Return the /search endpoint URL for the healthy candidate.
+                        return f"{base_url}/search"
+                except Exception as e:
+                    print(f"Health check failed for {base_url}: {e}")
+        raise Exception("No available Search API endpoint.")
+
     async def process_node(self, node_id: int, focus_message) -> tuple[None, None] | tuple[str, any]:
         curr_prompt = self.prompt_manager.get_prompt_by_id(node_id)
 
@@ -99,7 +116,9 @@ class Integrator:
             return "**This is a system prompt**", {"results": [{"System Node": "NA_system_node"}]}
 
         if self.web_search:
-            querier = DataQuerier(curr_prompt['text'], focus_message, "http://0.0.0.0:8383/search")
+            # Dynamically determine the Search API URL.
+            search_api_url = await self.get_search_api_url()
+            querier = DataQuerier(curr_prompt['text'], focus_message, search_api_url)
             print(f'Processing node {node_id} with prompt: {json.dumps(curr_prompt, indent=4)}')
             await querier.query_and_process()
             online_data = querier.get_processed_data()
