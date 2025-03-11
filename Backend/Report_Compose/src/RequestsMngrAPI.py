@@ -60,12 +60,6 @@ async def update_prompt(request: PromptUpdateRequest):
     yaml_file_path = os.path.join(PROMPTS_DIR, request.yaml_file_path)
     return {"message": "Prompt set updated", "new_path": yaml_file_path}
 
-# ----- Data Model for requests -----
-class ReportRequest(BaseModel):
-    company_name: str
-    mock: bool = False
-    prompt_name: str
-    # We can specify if we want to run in mock mode
 
 # We'll store references to integrator objects or results by task_id
 active_tasks: Dict[str, Dict] = {}  # task_id -> { "integrator": Integrator, "status": ..., "report": ... }
@@ -76,44 +70,47 @@ async def health_check():
     return {"status": "running"}
 
 # ----- Start Report Generation -----
+
+# Start Report Generation Endpoint
+# Data Model for requests
+class ReportRequest(BaseModel):
+    company_name: str
+    mock: bool = False
+    prompt_name: str
+    web_search: bool  # New toggle parameter
+
+# Start Report Generation Endpoint
 @app.post("/generate_report")
 async def generate_report(request: ReportRequest, background_tasks: BackgroundTasks):
     """
     Start generating a report in the background. Returns a task_id.
     """
     prompt_name = request.prompt_name
-
     company_name = request.company_name
     logging.info(f"Generating report with focus prompt: {company_name}")
 
-    # Validate that the prompt exists
+    # Validate prompt exists
     if prompt_name not in map_name_to_file:
         raise HTTPException(status_code=400, detail=f"Invalid prompt name: {prompt_name}")
 
     prompt_path = map_name_to_file[prompt_name]
-
     task_id = str(uuid.uuid4())
+
     # Create an Integrator with the YAML path
     integrator = Integrator(yaml_file_path=prompt_path)
-
-    # Store in dictionary so we can reference it
     active_tasks[task_id] = {"integrator": integrator, "status": "in-progress", "report": None}
 
-    # Kick off the background task
-    background_tasks.add_task(run_report_task, task_id, request.company_name, request.mock)
+    # Pass the web_search toggle to the background task
+    background_tasks.add_task(run_report_task, task_id, company_name, request.mock, request.web_search)
 
     return {"task_id": task_id, "status": "Processing started"}
 
-
-# The background task that calls Integrator
-async def run_report_task(task_id: str, company_name: str, mock: bool):
+# Modified background task:
+async def run_report_task(task_id: str, company_name: str, mock: bool, web_search: bool):
     try:
         integrator = active_tasks[task_id]["integrator"]
-        # Call the integrator's generate_report
-        # This will fill the results in integrator.results_dag
-        final_report_json = await integrator.generate_report(company_name, mock=mock)
-
-        # Mark the task as complete
+        # Pass the web_search parameter to the integrator
+        final_report_json = await integrator.generate_report(company_name, mock=mock, web_search=web_search)
         active_tasks[task_id]["status"] = "completed"
         active_tasks[task_id]["report"] = final_report_json
     except Exception as e:

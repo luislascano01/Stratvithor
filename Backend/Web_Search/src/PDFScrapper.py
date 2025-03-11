@@ -358,8 +358,8 @@ if __name__ == "__main__":
         similarity_threshold=0.35,
         continuity_window=1,
         summarization_model_name="philschmid/bart-large-cnn-samsum",
-        max_summary_length=300,
-        keyword_top_k_pages=10,
+        max_summary_length=200,
+        keyword_top_k_pages=5,
         # Use Flan-T5-Small as a local LLM for keyword extraction
         keyword_llm_model="google/flan-t5-small"
     )

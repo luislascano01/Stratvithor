@@ -104,7 +104,7 @@ class DataQuerier:
         if self.processed_data is None:
             logging.error("❌ Attempted to access processed data before processing.")
             raise ValueError("Data has not been processed yet. Call query_and_process first.")
-        logging.info("✅ Processed data returned.")
+        logging.info(f'✅ Processed data returned. Type: {type(self.processed_data)}')
         return self.processed_data
 
 # Configure logging to output to the console.

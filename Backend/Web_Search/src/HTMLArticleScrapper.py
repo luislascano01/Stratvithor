@@ -7,6 +7,7 @@ import torch
 import requests
 from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer, util
+from transformers import pipeline
 
 from Backend.Web_Search.src.PaywallUnblocker import PaywallUnblocker
 
@@ -28,8 +29,8 @@ class HTMLArticleScrapper:
       3) Extracts text blocks from <p>, <div>, and <table> elements,
       4) Uses sentence-transformer embeddings to filter out irrelevant text
          based on two prompts (general and particular),
-      5) Cleans up the final text by removing special characters, empty lines,
-         and lines with < 3 words.
+      5) Cleans up the final text,
+      6) Summarizes the text if it exceeds a certain token threshold (e.g. 600).
     """
 
     def __init__(
@@ -39,7 +40,20 @@ class HTMLArticleScrapper:
             model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
             similarity_threshold: float = 0.3,
             continuity_window: int = 1,
+            summarization_model_name: str = "philschmid/bart-large-cnn-samsum",
+            max_summary_length: int = 200,
+            max_tokens_for_article: int = 600
     ):
+        """
+        :param general_prompt: Broad question/topic you want to find in the article.
+        :param particular_prompt: More specific question/topic.
+        :param model_name: Hugging Face model name for SentenceTransformer embeddings.
+        :param similarity_threshold: Keep text blocks whose similarity >= this threshold.
+        :param continuity_window: Number of blocks to keep around each relevant block.
+        :param summarization_model_name: Summarization model for chunk-based summarization.
+        :param max_summary_length: Max tokens for each chunk's summary (approx).
+        :param max_tokens_for_article: If final text exceeds this, we summarize down to ~this length.
+        """
         self.model_name = model_name
         self.device = self._select_device()
         self.model = SentenceTransformer(model_name).to(self.device)
@@ -56,6 +70,16 @@ class HTMLArticleScrapper:
 
         self.similarity_threshold = similarity_threshold
         self.continuity_window = continuity_window
+
+        # Summarization pipeline
+        self.summarizer = pipeline(
+            "summarization",
+            model=summarization_model_name,
+            tokenizer=summarization_model_name,
+            device=0 if (self.device.type == "cuda") else -1,
+        )
+        self.max_summary_length = max_summary_length
+        self.max_tokens_for_article = max_tokens_for_article
 
     def _select_device(self) -> torch.device:
         if torch.backends.mps.is_available():
@@ -87,7 +111,7 @@ class HTMLArticleScrapper:
 
         logging.error(f"Failed to fetch {url} via normal HTTP after {max_retries} attempts.")
         logging.info("Falling back to PaywallUnblocker method.")
-        fallback_unblocker = PaywallUnblocker(wait_time=13)
+        fallback_unblocker = PaywallUnblocker(wait_time=5)
         return fallback_unblocker.unblock_url(url)
 
     def process_resource(self, url: str) -> str:
@@ -104,9 +128,12 @@ class HTMLArticleScrapper:
             text_blocks = self._extract_alternative_text_blocks(soup)
 
         main_article = self._extract_main_article_from_blocks(text_blocks)
-        # >>> Clean the final text <<<
         cleaned_article = self._clean_text(main_article)
-        return cleaned_article
+
+        # >>> Summarize if needed <<<
+        final_text = self._summarize_if_long(cleaned_article, self.max_tokens_for_article)
+
+        return final_text
 
     def _remove_boilerplate(self, soup: BeautifulSoup):
         for tag_name in ["nav", "footer", "aside", "script", "style", "form"]:
@@ -145,9 +172,6 @@ class HTMLArticleScrapper:
         return tables
 
     def _extract_meta_content(self, soup: BeautifulSoup) -> List[str]:
-        """
-        Extracts meta tag contents from common description meta tags.
-        """
         meta_texts = []
         meta_names = {"description", "og:description", "twitter:description"}
         for meta in soup.find_all("meta"):
@@ -174,6 +198,7 @@ class HTMLArticleScrapper:
         block_embeddings = self.model.encode(text_blocks, convert_to_tensor=True, device=self.device)
         sim_general = util.cos_sim(block_embeddings, self.general_prompt_emb).squeeze(dim=1)
         sim_partic = util.cos_sim(block_embeddings, self.particular_prompt_emb).squeeze(dim=1)
+
         # Weighted sum: can adjust weighting if desired
         similarities = sim_general + 3 * sim_partic
 
@@ -200,9 +225,6 @@ class HTMLArticleScrapper:
         return main_article
 
     def remove_redundant_lines(self, text: str, n=6) -> str:
-        """
-        Minimally deduplicates lines that share repeated n-grams.
-        """
         seen_ngrams = set()
         filtered_lines = []
         for line in text.splitlines():
@@ -224,20 +246,13 @@ class HTMLArticleScrapper:
         return "\n".join(filtered_lines)
 
     def _clean_text(self, text: str) -> str:
-        """
-        Removes special characters, empty lines, and any line with < 3 words.
-        Adjust the regex or word-count threshold as desired.
-        """
         cleaned_lines = []
         for line in text.splitlines():
-            # Strip leading/trailing whitespace
             line = line.strip()
             if not line:
                 continue
             # Remove unwanted characters (allow a-z, A-Z, 0-9, punctuation, whitespace)
-            # You can adjust this pattern as needed.
             line = re.sub(r"[^a-zA-Z0-9\s.,!?;:\-()]+", "", line)
-            # Remove extra spaces
             line = re.sub(r"\s+", " ", line).strip()
 
             # Check word count
@@ -248,6 +263,72 @@ class HTMLArticleScrapper:
             cleaned_lines.append(line)
         return "\n".join(cleaned_lines)
 
+    # -------------------------------------------------------------------------
+    # Summarize if final text is longer than 'max_tokens_for_article'
+    # -------------------------------------------------------------------------
+    def _summarize_if_long(self, text: str, max_tokens: int = 600) -> str:
+        """
+        If the final article text is more than 'max_tokens' tokens (approx. by splitting on whitespace),
+        we chunk it and summarize each chunk using self.summarizer. Then if the combined summary is
+        still too large, we summarize again until we get <= max_tokens tokens.
+        """
+        def count_tokens(s: str) -> int:
+            # Very rough approximation: word-based
+            return len(s.split())
+
+        if count_tokens(text) <= max_tokens:
+            return text  # No need to summarize
+
+        # We'll chunk the text in e.g. 600-800 token chunks (some buffer).
+        chunk_size = 700
+        lines = text.split()
+        chunks = []
+        current_chunk = []
+
+        for word in lines:
+            current_chunk.append(word)
+            if len(current_chunk) >= chunk_size:
+                chunks.append(" ".join(current_chunk))
+                current_chunk = []
+        # Add remainder
+        if current_chunk:
+            chunks.append(" ".join(current_chunk))
+
+        # Summarize each chunk individually
+        summarized_chunks = []
+        for chunk in chunks:
+            try:
+                result = self.summarizer(
+                    chunk,
+                    max_length=self.max_summary_length,  # e.g. 200
+                    min_length=30,
+                    do_sample=False
+                )
+                summarized_text = result[0]["summary_text"]
+                summarized_chunks.append(summarized_text)
+            except Exception as e:
+                logging.warning(f"Summarization error: {e}")
+                summarized_chunks.append(chunk)  # fallback
+
+        # Join the chunk summaries
+        merged_summary = "\n".join(summarized_chunks)
+
+        # If it's still too big, do an additional pass
+        # (this is optional; you could do a while loop until it's small enough)
+        if count_tokens(merged_summary) > max_tokens:
+            try:
+                final_result = self.summarizer(
+                    merged_summary,
+                    max_length=self.max_summary_length,
+                    min_length=30,
+                    do_sample=False
+                )
+                merged_summary = final_result[0]["summary_text"]
+            except Exception as e:
+                logging.warning(f"Final summarization pass error: {e}")
+
+        return merged_summary[:100000]  # safety cut if needed
+
 
 # Example usage:
 if __name__ == "__main__":
@@ -257,11 +338,14 @@ if __name__ == "__main__":
         particular_prompt="Oracle Earnings",
         model_name="sentence-transformers/all-MiniLM-L6-v2",
         similarity_threshold=0.45,
-        continuity_window=3
+        continuity_window=3,
+        summarization_model_name="philschmid/bart-large-cnn-samsum",
+        max_summary_length=200,
+        max_tokens_for_article=600
     )
 
     url = "https://www.wsj.com/politics/national-security/u-s-hitting-brakes-on-flow-of-arms-to-ukraine-980a71d1"
     article_text = scrapper.process_resource(url)
 
-    print("===== EXTRACTED ARTICLE (CLEANED) =====")
+    print("===== EXTRACTED (SUMMARIZED IF >600 TOKENS) =====")
     print(article_text)

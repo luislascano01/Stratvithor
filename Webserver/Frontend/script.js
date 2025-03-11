@@ -1,3 +1,5 @@
+window.web_search_enabled = true;
+
 document.addEventListener('DOMContentLoaded', function () {
     // Debug: Check for critical elements
     const chatContainer = document.getElementById('chat-container');
@@ -126,7 +128,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 body: JSON.stringify({
                     company_name: companyName,
                     mock: mock_global,
-                    prompt_name: selectedPrompt  // Include the selected prompt
+                    prompt_name: selectedPrompt,
+                    web_search: window.web_search_enabled  // Added parameter
                 })
             });
 
@@ -367,6 +370,7 @@ window.toggleChatHistory = function () {
 
 
 const nodeDetails = {};
+
 function displayNodeDetails(nodeId, details) {
     const chatHistory = document.getElementById("node-view");
     // Clear any existing content
@@ -402,7 +406,46 @@ function displayNodeDetails(nodeId, details) {
         llmResponse = "No LLM response found.";  // fallback text
     }
 
+// We expect onlineData to have a shape like:
+// { "results": { "some_title": "some content", ... } }
+    // 9) Create the online data container
+    const onlineDataDiv = document.createElement("div");
+    onlineDataDiv.className = "text-sm text-gray-300 whitespace-pre-wrap";
+
+// We expect something like: { "results": [ { "title1": "...", "title2": "..." }, ... ] }
     const onlineData = resultObj.online_data || "No online data found.";
+    let onlineDataContent = "";
+    console.log("Debug: onlineData =", onlineData, "Type:", typeof onlineData);
+
+    if (typeof onlineData === "object" && onlineData !== null && Array.isArray(onlineData.results)) {
+        console.log("Debug: onlineData.results is an array with length:", onlineData.results.length);
+        onlineData.results.forEach((result, idx) => {
+            console.log("Debug: Processing result index", idx, "=", result);
+            // In the loop over onlineData.results:
+            for (const [title, content] of Object.entries(result)) {
+                onlineDataContent += `
+                    <p class="text-left mb-2">
+                        <strong>${title}:</strong><br>
+                        ${
+                    typeof content === 'object'
+                        ? JSON.stringify(content, null, 2).trim()
+                        : content.trim()
+                }
+                    </p>
+       
+    `;
+            }
+            onlineDataContent += `<hr className="my-2 border-gray-500"/>`
+        });
+    } else {
+        console.log("Debug: onlineData does not have a 'results' array; fallback to stringification.");
+        onlineDataContent = (typeof onlineData === "object")
+            ? JSON.stringify(onlineData, null, 2)
+            : String(onlineData);
+    }
+    console.log("Debug: onlineDataContent =", onlineDataContent);
+    onlineDataDiv.innerHTML = onlineDataContent;
+
 
     // 5) Section Title in large bold letters
     const sectionTitleEl = document.createElement("h2");
@@ -426,34 +469,48 @@ function displayNodeDetails(nodeId, details) {
     // Create a custom renderer to ensure headings are at least <h4>
     const renderer = new marked.Renderer();
     renderer.heading = function (text, level, raw, slugger) {
-        // If level is not a valid number, default to 4
+        // If "text" is actually an object, use its "text" property
+        let headingText = (typeof text === "object") ? text.text : text;
+
+        // Force the heading to be at least level 3
         if (!level || isNaN(level)) {
-            level = 4;
+            level = 3;
         } else {
-            level = Math.max(level, 4);
+            level = Math.max(level, 3);
         }
-        return `<h${level}>${text}</h${level}>`;
+
+        console.log("Heading text:", headingText, "Requested level:", level);
+        return `<h${level}>${headingText}</h${level}>`;
     };
 
-    const htmlContent = marked.parse(finalMarkdown, { renderer });
+    const htmlContent = marked.parse(finalMarkdown, {renderer});
     llmDiv.innerHTML = htmlContent;
 
     // 8) Another separator
+    const separator0 = document.createElement("hr");
     const separator2 = document.createElement("hr");
+    const separator3 = document.createElement("hr");
     separator2.className = "my-2 border-gray-500";
+    separator3.className = "my-2 border-gray-500";
+    const onlineDataHeader = document.createElement("h3");
+    onlineDataHeader.className = "text-lg font-bold mb-2 mt-4";
+    onlineDataHeader.innerText = "Online Data";
 
     // 9) Online data at the end
-    const onlineDataDiv = document.createElement("div");
-    onlineDataDiv.className = "text-sm text-gray-300 whitespace-pre-wrap";
-    onlineDataDiv.innerText = `Online Data:\n${onlineData}`;
+
+    onlineDataDiv.className = "text-sm text-gray-300 whitespace-pre-wrap text-left";
 
     // 10) Append all elements to the node-view container
+    chatHistory.appendChild(separator0);
     chatHistory.appendChild(nodeHeader);
     chatHistory.appendChild(statusPara);
     chatHistory.appendChild(sectionTitleEl);
     chatHistory.appendChild(separator1);
     chatHistory.appendChild(llmDiv);
     chatHistory.appendChild(separator2);
+    // NEW: Append the "Online Data" heading here
+    chatHistory.appendChild(onlineDataHeader);
+    chatHistory.appendChild(separator3);
     chatHistory.appendChild(onlineDataDiv);
 }
 
@@ -530,3 +587,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // ... rest of your existing code ...
 });
 
+function toggleWebSearch() {
+    window.web_search_enabled = !window.web_search_enabled;
+    const btn = document.getElementById('toggle-websearch-btn');
+    if (btn) {
+        btn.innerText = window.web_search_enabled ? "ON 🌐" : "OFF ⭕️";
+    }
+    console.log("Web search toggled: " + window.web_search_enabled);
+}

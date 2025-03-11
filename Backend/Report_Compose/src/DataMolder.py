@@ -1,3 +1,5 @@
+import logging
+
 import aiohttp
 import asyncio
 import json
@@ -32,32 +34,31 @@ class DataMolder:
         """
         Processes the raw data by combining it with parent context and custom topic focuser,
         then sends it to the text processing microservice (or OpenAI) for refinement.
-
-        :param online_data: The raw structured data obtained from the DataQuerier.
-        :param ancestor_messages: List of previous messages in the conversation branch.
-                                 e.g. [{"entity": "system", "text": "..."}, {"entity": "user", "text": "..."}, ...]
-        :param custom_topic_focuser: Additional text to steer the processing.
-        :return: A dictionary with the processed (molded) data.
-        :raises Exception: If the microservice or OpenAI call fails.
+        If the API call fails due to input length, it will reduce the largest scrapped_text in online_data by half and retry.
         """
         if ancestor_messages is None:
             ancestor_messages = []
 
         molder_messages = [{
             "entity": "system",
-            'text': "You are an assistant with the responsibility of answering the user prompts. "
-                    "The user sometimes will provide online data to answer this prompts in the "
-                    "most upt-to-date way. However, if no online data is provided, then you must "
-                    "answer to the best of your knowledge at the time of your request. "
-                    "Please provide your response in markdown style, with correct citation "
-                    "of the online data sources. If the online data is empty, ignore it "
-                    "and do not think of its existence. "
-                    "Attempt to provide your most accurate response."
-
+            'text': (
+                "You are an assistant with the responsibility of answering the user prompts. "
+                "The user sometimes will provide online data to answer these prompts in the "
+                "most up-to-date way. However, if no online data is provided, then you must "
+                "answer to the best of your knowledge at the time of your request. "
+                "Please provide your response in markdown style, with correct citation "
+                "of the online data sources. If the online data is empty, ignore it "
+                "and do not think of its existence. "
+                "Attempt to provide your most accurate response.\n"+
+                "For every response, use "
+                "markdown format, however, do not start your response with a markdown header, but instead "
+                "give a plain text intro when starting your response. Do not re-state the question. The intro should start"
+                "answering right away. Follow the markdown format appropriately."
+            )
         }, {"entity": "user", "text": f'The company we will be building the report on today is {custom_topic_focuser}'}]
         ancestor_messages = molder_messages + ancestor_messages
 
-        print("DEBUG ancestor_messages for node", ":", json.dumps(ancestor_messages, indent=2))
+        print("DEBUG ancestor_messages for node:", json.dumps(ancestor_messages, indent=2))
 
         # 1) Convert `ancestor_messages` into GPT-4o–style chat structure
         role_map = {
@@ -81,7 +82,8 @@ class DataMolder:
                 ]
             })
 
-        # 2) Optionally incorporate online_data as a "developer" message with JSON payload:
+        # 2) Optionally incorporate online_data as a "developer" message with JSON payload.
+        # online_data is assumed to be a dictionary with one key "results".
         if online_data:
             data_str = json.dumps(online_data, indent=2)
             gpt4o_messages.append({
@@ -89,19 +91,14 @@ class DataMolder:
                 "content": [
                     {
                         "type": "text",
-                        "text": "#" * 10 + "\n" +
-                                f"ONLINE_DATA\n"
-                                + "-" * 10 +
-                                f"\n{data_str}" +
-                                "-" * 10 +
-                                f"End of ONLINE_DATA\n"
-                                "#" * 10 + "\n"
-
+                        "text": ("##########\nONLINE_DATA\n----------\n" +
+                                 data_str +
+                                 "\n----------\nEnd of ONLINE_DATA\n##########\n")
                     }
                 ]
             })
 
-        # 3) If there's a custom topic focuser, treat it like a user message at the end.
+        # 3) If there's a custom topic focuser, add it as a final user message.
         if custom_topic_focuser:
             gpt4o_messages.append({
                 "role": "user",
@@ -113,27 +110,71 @@ class DataMolder:
                 ]
             })
 
-        # 4) Call the selected model. We create an OpenAI client instance and run the synchronous call
-        # within asyncio.to_thread to keep the interface async.
-        try:
-            client = openai.OpenAI(api_key=self.openai_api_key)
-            if self.model_name in ["gpt-4o", "gpt-3.5-turbo"]:
-                response = await asyncio.to_thread(
-                    lambda: client.chat.completions.create(
-                        model=self.model_name,
-                        messages=gpt4o_messages,
+        # 4) Retry loop: if the API call fails because the input is too long,
+        #    cut the largest scrapped_text in online_data["results"] in half and retry.
+        max_retries = 5
+        attempt = 0
+        last_exception = None
+        while attempt < max_retries:
+            try:
+                client = openai.OpenAI(api_key=self.openai_api_key)
+                if self.model_name in ["gpt-4o", "gpt-3.5-turbo"]:
+                    response = await asyncio.to_thread(
+                        lambda: client.chat.completions.create(
+                            model=self.model_name,
+                            messages=gpt4o_messages,
+                        )
                     )
-                )
-                output_text = response.choices[0].message.content
-            else:
-                # Fallback if you want to support additional models.
-                raise Exception("Unsupported model")
-
-            # 5) Return the processed result.
-            return output_text
-
-        except Exception as e:
-            raise Exception(f"DataMolder process_data failed: {str(e)}") from e
+                    output_text = response.choices[0].message.content
+                    return output_text  # Success, return the answer.
+                else:
+                    raise Exception("Unsupported model")
+            except Exception as e:
+                last_exception = e
+                error_message = str(e)
+                logging.info(f"Attempt {attempt + 1} failed: {error_message}")
+                # Check if error message indicates token length issues.
+                if "Token indices sequence length" in error_message or "exceeds maximum" in error_message:
+                    # Check if online_data has a "results" key with a non-empty list.
+                    results = online_data.get("results")
+                    if results and isinstance(results, list):
+                        # Find the result with the longest scrapped_text.
+                        longest_idx = None
+                        max_len = 0
+                        for idx, result in enumerate(results):
+                            text_val = result.get("scrapped_text", "")
+                            if len(text_val) > max_len:
+                                max_len = len(text_val)
+                                longest_idx = idx
+                        if longest_idx is not None and max_len > 0:
+                            old_text = results[longest_idx]["scrapped_text"]
+                            new_text = old_text[: len(old_text) // 2]
+                            results[longest_idx]["scrapped_text"] = new_text
+                            logging.info(
+                                f"Reduced scrapped_text length of result {longest_idx} from {max_len} to {len(new_text)}")
+                            # Rebuild the online_data message.
+                            data_str = json.dumps(online_data, indent=2)
+                            # Remove the last developer message (online_data) and add an updated one.
+                            if gpt4o_messages and gpt4o_messages[-1]["role"] == "developer":
+                                gpt4o_messages.pop()
+                            gpt4o_messages.append({
+                                "role": "developer",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": ("##########\nONLINE_DATA\n----------\n" +
+                                                 data_str +
+                                                 "\n----------\nEnd of ONLINE_DATA\n##########\n")
+                                    }
+                                ]
+                            })
+                            # Now retry the API call.
+                            attempt += 1
+                            continue
+                # If not a token-length issue or no online data to reduce, then break.
+                break
+        # If all attempts fail, raise the last exception.
+        raise Exception(f"DataMolder process_data failed after {attempt} attempts: {last_exception}")
 
 
 if __name__ == "__main__":

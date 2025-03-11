@@ -97,7 +97,7 @@ class GoogleSearchCaller:
             self,
             query: str,
             cse_id: str,
-            num_results: int = 5
+            num_results: int = 2
     ) -> List[Dict[str, str]]:
         """
         Perform a Google Custom Search (CSE) and return the raw 'items' from the JSON response.

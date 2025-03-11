@@ -89,20 +89,22 @@ class Integrator:
         self.tasks = {}
         self.openAI_API_key = load_openai_api_key("./Credentials/Credentials.yaml")
         self.focus_message = "Default Focus Message"
+        self.web_search = True
 
     async def process_node(self, node_id: int, focus_message) -> tuple[None, None] | tuple[str, any]:
         curr_prompt = self.prompt_manager.get_prompt_by_id(node_id)
 
         if curr_prompt['system'] is True:
             logging.info(f"Skipping node {node_id} since it's system prompt")
-            return "**This is a system prompt**", {"Online_Data": "NA_system_node"}
+            return "**This is a system prompt**", {"results": [{"System Node": "NA_system_node"}]}
 
-        querier = DataQuerier(curr_prompt['text'], focus_message, "http://0.0.0.0:8383/search")
-        print(f'Processing node {node_id} with prompt: {json.dumps(curr_prompt, indent=4)}')
-        #await querier.query_and_process()
-
-        #online_data = querier.get_processed_data()
-        online_data = "Mock Online Data. Please Ignore"
+        if self.web_search:
+            querier = DataQuerier(curr_prompt['text'], focus_message, "http://0.0.0.0:8383/search")
+            print(f'Processing node {node_id} with prompt: {json.dumps(curr_prompt, indent=4)}')
+            await querier.query_and_process()
+            online_data = querier.get_processed_data()
+        else:
+            online_data = {"results": [{"mock_data": "place_holder"}]}
         print(f'Count of articles found for node {node_id}: {len(online_data)}')
 
         molder = DataMolder("gpt-3.5-turbo", self.openAI_API_key)
@@ -178,7 +180,8 @@ class Integrator:
                 if not prompt["system"]:
                     chat_history.append({
                         "entity": "llm",
-                        "text": str(node_result["result"])
+                        "text": str(node_result["result"]['llm']) # Using llm here is very important to avoid
+                                                                  # input overflow of ancestor online_data
                     })
 
         return chat_history
@@ -214,29 +217,27 @@ class Integrator:
         except Exception as e:
             self.results_dag.mark_failed(node_id, str(e))
 
-    async def generate_report(
-            self,
-            focus_message: str,
-            mock: bool = False
-    ) -> str:
+    async def generate_report(self, focus_message: str, mock: bool = False, web_search: bool = True) -> str:
         """
         Process the prompt DAG concurrently.
         Each node is scheduled as soon as its dependencies are complete.
+        The web_search flag is set based on the API parameter.
         """
         self.focus_message = focus_message
+        self.web_search = web_search  # Propagate the parameter to the integrator
+
         dag = self.prompt_manager.prompt_dag
 
         # Initialize each node in ResultsDAG as "pending"
         for node_id in dag.nodes():
             self.results_dag.init_node(node_id)
 
-        # Schedule tasks for each node in topological order so that parent's tasks exist
+        # Schedule tasks for each node in topological order
         for node_id in nx.topological_sort(dag):
             self.tasks[node_id] = asyncio.create_task(self.queue_node(node_id, dag, mock))
 
         # Await all node tasks concurrently
         await asyncio.gather(*self.tasks.values())
 
-        # Return JSON representation of the entire DAG’s results
         print(json.dumps(self.results_dag.to_json(), indent=4))
         return self.results_dag.to_json()

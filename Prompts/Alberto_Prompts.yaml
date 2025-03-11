@@ -1,7 +1,7 @@
 prompts:
   initial:
     section_name: "Set Up"
-    text: "For the company that will be specified below, I need you to create a professional, in-depth report suitable for presentation to the Credit Department of a leading international bank. The report must answer the specific questions I will provide, with each answer using the exact title provided before the semicolon as the header of the answer. The title must be used verbatim as the header. Guidelines for the report: Do not begin the report until I specify the company and ask a question. Use only reliable sources such as the company’s SEC filings, annual reports, and official website. Wikipedia must be avoided entirely. Clearly state the sources of information for every response. For any data comparisons, specify the relevant periods to ensure accuracy. Avoid any introductory or explanatory sentences about the question. Go directly to the response under the provided title."
+    text: "For the company that will be specified below, I need you to create a professional, in-depth report suitable for presentation to the Credit Department of a leading international bank. The report must answer the specific questions I will provide. Guidelines for the report: Do not begin the report until I specify the company and ask a question. Use only reliable sources such as the company’s SEC filings, annual reports, and official website. Wikipedia must be avoided entirely. Clearly state the sources of information for every response. For any data comparisons, specify the relevant periods to ensure accuracy. Avoid any introductory or explanatory sentences about the question. Go directly to the response under the provided title."
     id: 0
     system: true
 
