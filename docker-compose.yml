@@ -3,23 +3,36 @@ version: '3.8'
 services:
   web_search_api:
     build:
-      context: .                 # Project root as build context
+      context: .
       dockerfile: Backend/Dockerfile
+      args:
+        BASE_IMAGE: ${BACKEND_BASE_IMAGE:-python:3.11-slim}
     container_name: web_search_api
     expose:
       - "8383"
-    # Override CMD to run WebSearchAPI
     command: ["python", "-m", "uvicorn", "Backend.Web_Search.src.WebSearchAPI:app", "--host", "0.0.0.0", "--port", "8383"]
+    # For GPU-enabled deployments, you can add GPU resource reservations (if using swarm mode)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
 
   request_manager:
     build:
-      context: .                 # Same build context
+      context: .
       dockerfile: Backend/Dockerfile
+      args:
+        BASE_IMAGE: ${BACKEND_BASE_IMAGE:-python:3.11-slim}
     container_name: request_manager
     expose:
       - "8181"
-    # Override CMD to run RequestsMngrAPI
     command: ["python", "-m", "uvicorn", "Backend.Report_Compose.src.RequestsMngrAPI:app", "--host", "0.0.0.0", "--port", "8181"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
 
   web_server:
     build:
