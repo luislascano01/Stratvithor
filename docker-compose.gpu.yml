@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  web_search_api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+  request_manager:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]

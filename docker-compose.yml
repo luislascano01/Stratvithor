@@ -11,12 +11,6 @@ services:
     expose:
       - "8383"
     command: ["python", "-m", "uvicorn", "Backend.Web_Search.src.WebSearchAPI:app", "--host", "0.0.0.0", "--port", "8383"]
-    # For GPU-enabled deployments, you can add GPU resource reservations (if using swarm mode)
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
 
   request_manager:
     build:
@@ -28,11 +22,6 @@ services:
     expose:
       - "8181"
     command: ["python", "-m", "uvicorn", "Backend.Report_Compose.src.RequestsMngrAPI:app", "--host", "0.0.0.0", "--port", "8181"]
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
 
   web_server:
     build:
