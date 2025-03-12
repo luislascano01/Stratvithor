@@ -129,6 +129,7 @@ class SearchIntegrator:
         return resource
 
     def get_aggregated_response(self, llm_api_url: str, cse_id=None) -> List[Dict[str, object]]:
+        logging.info(f"SearchIntegrator getting aggregated response using LLM @ {llm_api_url}")
         if cse_id is None:
             cse_id = self.default_csd_id
 
