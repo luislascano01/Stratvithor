@@ -25,72 +25,48 @@ USER_AGENTS = [
 
 
 class PDFScrapper:
-    """
-    A class that:
-      1) Stealthily fetches a PDF from a given URL.
-      2) Extracts text and table data from each page.
-      3) (NEW) Uses a small local LLM to extract up to N keywords from the general prompt.
-      4) Ranks pages by the presence of these keywords, pre-selecting top K pages.
-      5) Runs SentenceTransformer embedding-based filtering on those pages.
-      6) Summarizes relevant pages with a local summarization model.
-      7) Returns the merged text summary + any table data from the relevant pages.
-    """
-
     def __init__(
             self,
             general_prompt: str,
             particular_prompt: str,
+            summarizer_obj,  # New parameter for shared summarizer
             model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
             similarity_threshold: float = 0.3,
             continuity_window: int = 0,
             summarization_model_name: str = "philschmid/bart-large-cnn-samsum",
             max_summary_length: int = 200,
             keyword_top_k_pages: int = 5,
-            # The small LLM we use for keyword extraction (Flan-T5-Small for demonstration)
             keyword_llm_model: str = "google/flan-t5-small"
     ):
         """
-        :param general_prompt: Broad question/topic you want to find in the PDF.
-        :param particular_prompt: A more specific question/topic.
-        :param model_name: A huggingface model name for SentenceTransformer embeddings.
-        :param similarity_threshold: Keep pages whose max similarity >= this threshold.
-        :param continuity_window: Number of page neighbors to keep around a relevant page.
-        :param summarization_model_name: A local or HF model ID for summarization pipeline.
-        :param max_summary_length: Control maximum length of each summary chunk (in tokens).
-        :param keyword_top_k_pages: How many pages to keep after the keyword-based pre-selection.
-        :param keyword_llm_model: A small local LLM for keyword extraction (default: Flan-T5-Small).
+        :param general_prompt: Broad topic/question for extraction.
+        :param particular_prompt: Specific query/focus.
+        :param summarizer_obj: Shared SummarizerQueue instance to queue GPU summarization tasks.
+        :param model_name: HuggingFace SentenceTransformer model for embedding.
+        :param similarity_threshold: Minimum similarity threshold for page selection.
+        :param continuity_window: Number of neighboring pages to include for context.
+        :param summarization_model_name: Name of the model for summarization (not used locally here).
+        :param max_summary_length: Maximum token length for each summary chunk.
+        :param keyword_top_k_pages: How many pages to keep after keyword pre-selection.
+        :param keyword_llm_model: Model name for the small LLM used for keyword extraction.
         """
-
         self.general_prompt = general_prompt
         self.particular_prompt = particular_prompt
         self.similarity_threshold = similarity_threshold
         self.continuity_window = continuity_window
         self.device = self._select_device()
-
-        # Sentence embeddings for classification
         self.embedding_model = SentenceTransformer(model_name).to(self.device)
-        self.general_prompt_emb = self.embedding_model.encode(
-            self.general_prompt, convert_to_tensor=True, device=self.device
-        )
-        self.particular_prompt_emb = self.embedding_model.encode(
-            self.particular_prompt, convert_to_tensor=True, device=self.device
-        )
-
-        # Local summarization pipeline
-        self.summarizer = pipeline(
-            "summarization",
-            model=summarization_model_name,
-            tokenizer=summarization_model_name,
-            device=0 if (self.device.type == "cuda") else -1,
-        )
+        self.general_prompt_emb = self.embedding_model.encode(general_prompt, convert_to_tensor=True, device=self.device)
+        self.particular_prompt_emb = self.embedding_model.encode(particular_prompt, convert_to_tensor=True, device=self.device)
+        # Use the shared summarizer object instead of creating a local pipeline.
+        self.summarizer_obj = summarizer_obj
         self.max_summary_length = max_summary_length
-
-        # How many pages to keep based on keyword approach
         self.keyword_top_k_pages = keyword_top_k_pages
-
-        # Small LLM for keyword extraction
         self.keyword_llm_tokenizer = T5Tokenizer.from_pretrained(keyword_llm_model)
         self.keyword_llm = T5ForConditionalGeneration.from_pretrained(keyword_llm_model).to(self.device)
+
+
+
 
     def _select_device(self) -> torch.device:
         """Selects the best available device (MPS, CUDA, or CPU)."""
@@ -311,39 +287,23 @@ class PDFScrapper:
         return sorted(list(keep_set))
 
     def _summarize_pages(self, pages_text: List[str], keep_indices: List[int]) -> str:
-        """
-        Summarize each relevant page with a local summarization model.
-        Combine the summarized pages into one final text.
-        If a page is too large, we might chunk it for summarization.
-        """
         summaries = []
         for idx in keep_indices:
             content = pages_text[idx]
             if not content:
                 continue
-
-            # Chunking by characters
             chunk_size = 1000
             chunks = [content[i: i + chunk_size] for i in range(0, len(content), chunk_size)]
-
             page_summary_parts = []
             for chunk in chunks:
                 try:
-                    result = self.summarizer(
-                        chunk,
-                        max_length=self.max_summary_length,
-                        min_length=30,
-                        do_sample=False
-                    )
-                    summary_text = result[0]["summary_text"]
+                    summary_text = self.summarizer_obj.summarize(chunk, max_length=self.max_summary_length, min_length=30, do_sample=False)
                     page_summary_parts.append(summary_text)
                 except Exception as e:
                     logging.warning(f"Summarization error on page {idx}, chunk: {e}")
-
             page_summary = "\n".join(page_summary_parts)
             page_summary_final = f"[PAGE {idx + 1}] {page_summary}"
             summaries.append(page_summary_final)
-
         final_text = "\n\n".join(summaries)
         return final_text
 

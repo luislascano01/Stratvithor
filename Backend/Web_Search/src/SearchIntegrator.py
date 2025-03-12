@@ -3,9 +3,12 @@ import time
 from typing import List, Dict, Optional
 import re
 
+import torch.cuda
+
 from Backend.Web_Search.src.GoogleSearchCaller import GoogleSearchCaller
 from Backend.Web_Search.src.HTMLArticleScrapper import HTMLArticleScrapper
 from Backend.Web_Search.src.PDFScrapper import PDFScrapper
+from Backend.Web_Search.src.SummarizationTask import SummarizerQueue
 from Backend.Web_Search.src.QuerySynthesizer import QuerySynthesizer
 from Credentials.CredentialManager import CredentialManager
 
@@ -27,10 +30,19 @@ def format_url(url: str) -> str:
     # Build the formatted string.
     return f"{short_url}---{('.' + extension) if extension else ''}"
 
-
 class SearchIntegrator:
     def __init__(self, general_prompt: str, particular_prompt, cred_mngr: CredentialManager, operating_path: str,
-                 worker_timeout=100, scrapping_timeout=100):
+                 worker_timeout: int = 100, scrapping_timeout: int = 100, summarizer_obj: 'SummarizerQueue' = None):
+        """
+        :param general_prompt: Broad search query or topic.
+        :param particular_prompt: Specific query details.
+        :param cred_mngr: CredentialManager for API keys.
+        :param operating_path: Path for temporary file operations.
+        :param worker_timeout: Timeout for worker tasks.
+        :param scrapping_timeout: Timeout for scrapping each resource.
+        :param summarizer_obj: (Optional) Shared SummarizerQueue instance. If None, a new instance is created
+                               using the selected device (device=0 for CUDA, -1 otherwise).
+        """
         self.general_prompt = general_prompt
         self.particular_prompt = particular_prompt
         self.cred_mngr = cred_mngr
@@ -41,6 +53,14 @@ class SearchIntegrator:
         self.scrapping_timeout = scrapping_timeout
         if self.g_api_key is None:
             logging.error("Google Cloud API key not found in passed credential manager (grouped credentials).")
+
+        # Select device (0 for CUDA, -1 for CPU)
+        self.device = 0 if torch.cuda.is_available() else -1
+
+        # Instantiate SummarizerQueue if not provided.
+        from Backend.Web_Search.src.SummarizationTask import SummarizerQueue
+        self.summarizer_obj = summarizer_obj if summarizer_obj is not None else SummarizerQueue(device=self.device)
+
 
     def detect_resource_type(self, url: str) -> str:
         """
@@ -87,8 +107,10 @@ class SearchIntegrator:
         from Backend.Web_Search.src.PDFScrapper import PDFScrapper
 
         # Re-create the scrapper objects to avoid pickling issues with the main instance
-        web_scrapper = HTMLArticleScrapper(self.general_prompt, self.particular_prompt)
-        pdf_scrapper = PDFScrapper(self.general_prompt, self.particular_prompt)
+        web_scrapper = HTMLArticleScrapper(self.general_prompt, self.particular_prompt,
+                                           summarizer_obj=self.summarizer_obj)
+        pdf_scrapper = PDFScrapper(self.general_prompt, self.particular_prompt, summarizer_obj=self.summarizer_obj)
+
         custom_scrappers = {"pdf": pdf_scrapper, "html": web_scrapper}
 
         curr_url = resource["url"]
