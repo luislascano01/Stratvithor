@@ -42,7 +42,8 @@ class QuerySynthesizer:
 
             # Ensure response is completely received
             data = response.json()
-            print("Raw LLM Response:", data)  # Debugging line, remove after confirming
+            print("Raw LLM Response: \n", data)
+            print("\n\n")# Debugging line, remove after confirming
 
             # OLLAMA returns response under 'message' -> 'content'
             if "message" in data and "content" in data["message"]:
@@ -58,11 +59,11 @@ class QuerySynthesizer:
                     # If group(1) matched, it's the triple-backtick version;
                     # otherwise, group(2) contains the entire text.
                     extracted_content = json_match.group(1) or json_match.group(2)
-                    print("✅ QuerySynthesizer: Extracted JSON from LLM\n:", extracted_content+"\n")
+                    print("✅ QuerySynthesizer: Extracted JSON from LLM:\n", extracted_content+"\n")
                     return extracted_content
                 else:
                     print("❌ QuerySynthesizer: No JSON formatting detected for search prompts; returning raw message.")
-                    return message_response
+                    return None
 
             return None  # Return None if no valid response found
 
@@ -97,20 +98,20 @@ class QuerySynthesizer:
 
         user_message = f"The user asked: '{incoming_prompt}'. Please propose six(6) different Google search queries."
 
-        raw_response = self._call_llm(system_instructions, user_message)
-        if not raw_response:
+        json_response = self._call_llm(system_instructions, user_message)
+        if not json_response:
             print("Warning: LLM call failed; returning generic queries.")
             return [f"{incoming_prompt} (Query 1)",
                     f"{incoming_prompt} (Query 2)",
                     f"{incoming_prompt} (Query 3)"]
 
         try:
-            data = json.loads(raw_response)
+            data = json.loads(json_response)
             search_prompts = data.get("search_prompts", [])
             search_prompts = [s.capitalize() for s in search_prompts]
             return search_prompts
         except json.JSONDecodeError:
-            print("Warning: Could not decode LLM response as JSON.")
+            print("❌ Warning [QuerySynthesizer]: Could not decode LLM response as JSON.")
             return [f"{incoming_prompt} (Fallback Query 1)",
                     f"{incoming_prompt} (Fallback Query 2)",
                     f"{incoming_prompt} (Fallback Query 3)"]

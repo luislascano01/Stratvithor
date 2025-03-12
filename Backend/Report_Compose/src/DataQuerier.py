@@ -120,7 +120,7 @@ class DataQuerier:
             "llm_api_url": self.llm_api_url,
             "cse_id": self.cse_id
         }
-        logging.info("🔍 Sending POST request to SearchIntegrator API...")
+        logging.info(f'🔍 Sending POST request to SearchIntegrator API @ {self.search_api_url}')
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(self.search_api_url, json=payload) as response:

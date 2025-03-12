@@ -55,7 +55,11 @@ class SearchIntegrator:
             logging.error("Google Cloud API key not found in passed credential manager (grouped credentials).")
 
         # Select device (0 for CUDA, -1 for CPU)
-        self.device = 0 if torch.cuda.is_available() else -1
+        try:
+            self.device = 0 if torch.cuda.is_available() else -1
+        except RuntimeError:
+            logging.info("Cuda is not available. Using CPU.")
+            self.device = -1
 
         # Instantiate SummarizerQueue if not provided.
         from Backend.Web_Search.src.SummarizationTask import SummarizerQueue
