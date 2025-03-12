@@ -30,3 +30,5 @@ services:
     container_name: strvthr_websrv_nginx
     ports:
       - "5155:5155"
+    depends_on:
+      - request_manager

@@ -2,14 +2,24 @@ version: '3.8'
 
 services:
   web_search_api:
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     deploy:
       resources:
         reservations:
           devices:
-            - capabilities: [gpu]
+            - capabilities: [ "gpu" ]
+              driver: nvidia
+              device_ids: [ "0" ]  # Assumes you have at least one GPU, typically ID 0.
   request_manager:
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     deploy:
       resources:
         reservations:
           devices:
-            - capabilities: [gpu]
+            - capabilities: [ "gpu" ]
+              driver: nvidia
+              device_ids: [ "0" ]  # Assumes you have at least one GPU, typically ID 0.
