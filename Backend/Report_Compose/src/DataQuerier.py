@@ -1,8 +1,13 @@
+import re
+
 import aiohttp
 import asyncio
 import logging
 import json  # Import json module for pretty printing
 from typing import List, Optional, Dict, Any
+
+import requests
+
 
 class DataQuerier:
     """
@@ -10,15 +15,16 @@ class DataQuerier:
     It builds a payload matching the API's SearchRequest model and
     handles asynchronous calls, error checking, and response processing.
     """
+
     def __init__(
-        self,
-        general_prompt: str,
-        focus_message: str,
-        search_api_url: str,
-        credentials: str = "./Credentials/Credentials.yaml",
-        operating_path: str = "/tmp",
-        llm_api_url: str = "http://localhost:11434/api/chat",
-        cse_id: Optional[str] = None
+            self,
+            general_prompt: str,
+            focus_message: str,
+            search_api_url: str,
+            credentials: str = "./Credentials/Credentials.yaml",
+            operating_path: str = "/tmp",
+            llm_api_url: str = "http://localhost:11434/api/chat",
+            cse_id: Optional[str] = None
     ):
         """
         Initializes DataQuerier.
@@ -42,6 +48,63 @@ class DataQuerier:
         self.processed_data: Optional[Dict[str, Any]] = None
 
         logging.info(f"🚀 DataQuerier initialized with API URL: {self.search_api_url}")
+
+        # Automatically verify and update the LLM API URL if necessary.
+        self.llm_api_url = self.verify_llm_url(llm_api_url)
+        logging.info(f"LLM API URL set to: {self.llm_api_url}")
+
+    def verify_llm_url(self, url: str) -> str:
+        """
+        Verifies the provided LLM API base URL by making a GET request.
+        If the request fails or doesn't contain 'ollama is running',
+        it tries an alternative URL by replacing 'localhost' with
+        'host.docker.internal' (common in Docker setups).
+
+        :param url: The initial LLM API URL, e.g. 'http://localhost:11434/api/chat'
+        :return: A working LLM API URL (with /api/chat appended).
+        """
+        timeout = 5  # seconds
+
+        # 1) Extract the base URL (strip off '/api/chat' or any trailing path).
+        #    This is where Ollama’s default "ollama is running" text is served.
+        base_url = re.sub(r"/api.*", "/",
+                          url)  # turn e.g. 'http://localhost:11434/api/chat' into 'http://localhost:11434/'
+
+        # 2) Try the original base URL first.
+        try:
+            response = requests.get(base_url, timeout=timeout)
+            # Check if "ollama is running" is in the response body (case-insensitive).
+            if response.status_code == 200 and "ollama is running" in response.text.lower():
+                logging.info(f"LLM API (Ollama) is reachable at {base_url}")
+                return url  # Keep the original URL with '/api/chat'
+            else:
+                logging.warning(
+                    f"Base URL at {base_url} returned status {response.status_code}; "
+                    f"did not detect 'ollama is running'. Response text: {response.text[:100]}..."
+                )
+        except Exception as e:
+            logging.error(f"Failed to reach LLM base URL at {base_url}: {e}")
+
+        # 3) Try alternative base URL by replacing 'localhost' with 'host.docker.internal'
+        alt_base_url = base_url.replace("localhost", "host.docker.internal")
+        alt_full_url = url.replace("localhost", "host.docker.internal")
+
+        try:
+            response = requests.get(alt_base_url, timeout=timeout)
+            if response.status_code == 200 and "ollama is running" in response.text.lower():
+                logging.info(f"LLM API (Ollama) is reachable at alternative base URL: {alt_base_url}")
+                return alt_full_url  # Return the alternative full path with '/api/chat'
+            else:
+                logging.warning(
+                    f"Alternative base URL at {alt_base_url} returned status {response.status_code}; "
+                    f"did not detect 'ollama is running'. Response text: {response.text[:100]}..."
+                )
+        except Exception as e:
+            logging.error(f"Failed to reach alternative base URL at {alt_base_url}: {e}")
+
+        # 4) If neither base URL nor alternative responded with the magic string, keep the original.
+        logging.error("LLM API not reachable at provided or alternative base URL. Proceeding with original URL.")
+        return url
 
     async def fetch_data(self):
         """
@@ -107,8 +170,10 @@ class DataQuerier:
         logging.info(f'✅ Processed data returned. Type: {type(self.processed_data)}')
         return self.processed_data
 
+
 # Configure logging to output to the console.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 async def main():
     # Define the SearchIntegrator API URL and LLM API URL.
@@ -143,6 +208,7 @@ async def main():
         print(json.dumps(results, indent=4))
     except Exception as e:
         logging.error(f"Main method encountered an error: {e}")
+
 
 if __name__ == '__main__':
     asyncio.run(main())

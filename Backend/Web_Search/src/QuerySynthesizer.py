@@ -50,13 +50,18 @@ class QuerySynthesizer:
                 print("Message Response GSrch Query Synth:", message_response)
 
                 # Extract JSON content from the markdown block
-                json_match = re.search(r'```json\s*([\s\S]*?)\s*```', message_response, re.DOTALL)
+
+                pattern = re.compile(r'(?:```json\s*([\s\S]*?)\s*```|([\s\S]+))', re.DOTALL)
+
+                json_match = pattern.search(message_response)
                 if json_match:
-                    json_content = json_match.group(1)
-                    print("Extracted JSON content:", json_content)
-                    return json_content
+                    # If group(1) matched, it's the triple-backtick version;
+                    # otherwise, group(2) contains the entire text.
+                    extracted_content = json_match.group(1) or json_match.group(2)
+                    print("✅ QuerySynthesizer: Extracted JSON from LLM\n:", extracted_content+"\n")
+                    return extracted_content
                 else:
-                    print("No markdown formatting detected; returning raw message.")
+                    print("❌ QuerySynthesizer: No JSON formatting detected for search prompts; returning raw message.")
                     return message_response
 
             return None  # Return None if no valid response found
@@ -87,7 +92,7 @@ class QuerySynthesizer:
             '    "Prompt 6"\n'
             "  ]\n"
             "}\n\n"
-            "No additional keys should be present. Only return the JSON response"
+            "No additional keys should be present. Only return the JSON formatted response."
         )
 
         user_message = f"The user asked: '{incoming_prompt}'. Please propose six(6) different Google search queries."
