@@ -21,7 +21,9 @@ services:
     container_name: request_manager
     expose:
       - "8181"
-    command: ["python", "-m", "uvicorn", "Backend.Report_Compose.src.RequestsMngrAPI:app", "--host", "0.0.0.0", "--port", "8181"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: [ "python", "-m", "uvicorn", "Backend.Report_Compose.src.RequestsMngrAPI:app", "--host", "0.0.0.0", "--port", "8181" ]
 
   web_server:
     build:

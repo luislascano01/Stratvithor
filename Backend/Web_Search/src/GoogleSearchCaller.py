@@ -405,7 +405,7 @@ class GoogleSearchCaller:
 if __name__ == "__main__":
 
     myCredentialManager = CredentialManager(
-        "/Users/luislascano01/Documents/Sabadell/Stratvithor/Credentials/Credentials.yaml")
+        "./Credentials/Credentials.yaml")
 
     search_api_key = myCredentialManager.get_credential("API_Keys", "Google_Cloud")
 

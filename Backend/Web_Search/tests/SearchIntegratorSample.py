@@ -1,5 +1,7 @@
 from pathlib import Path
 import logging
+import multiprocessing
+
 
 # Import your classes (adjust the import paths as needed)
 from Backend.Web_Search.src.SearchIntegrator import SearchIntegrator
@@ -69,4 +71,5 @@ def main():
         print(format_resource(resource))
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method('spawn')
     main()

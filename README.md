@@ -6,7 +6,7 @@
 .
 
                         Project Under Construction
-
+    
                 🚧🚧🚧🚧🚧🚧 🚧🚧🚧🚧🚧🚧   🚧🚧🚧🚧🚧🚧 🚧🚧🚧🚧🚧🚧
 
 Stratvithor redefines the way insights are gathered, structured, and continuously updated. It is a **multi-dimensional intelligence dashboard** that adapts in real time, integrating AI-driven automation with live data pipelines. Users can **design, explore, and refine structured knowledge environments**, ensuring that critical information remains current, relevant, and actionable.  
@@ -71,11 +71,11 @@ Stratvithor transforms static reporting into an **ever-evolving intelligence net
 The system is multi-containerized using Docker for easy deployment. 
 
 ### Set-up:
-    
+
  Clone repo
 ```console
     git clone https://github.com/luislascano01/Stratvithor
- ```
+```
 Navigate to directory and make credentials file
 ```console
     cd Stratvithor
@@ -96,14 +96,26 @@ Add valid credentials for OpenAI and Google Search Engine inside Credential.yaml
 
 ### Execution:
 
+#### No CUDA
+
 ```console
     docker compose build
     docker compose up
 ```
+#### CUDA
+
+```console
+export BACKEND_BASE_IMAGE=pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+```
+
 To access front end:
+
 ```
     localhost:5155
 ```
+
+
 
 ## Prompt Settings
 
