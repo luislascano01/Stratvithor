@@ -126,7 +126,7 @@ class Integrator:
             online_data = {"results": [{"mock_data": "place_holder"}]}
         print(f'Count of articles found for node {node_id}: {len(online_data)}')
 
-        molder = DataMolder("gpt-3.5-turbo", self.openAI_API_key)
+        molder = DataMolder("gpt-4o", self.openAI_API_key)
         ancestor_messages = self.get_ancestor_chat_hist(node_id)
         response = await molder.process_data(online_data, ancestor_messages, focus_message)
         return response, online_data
