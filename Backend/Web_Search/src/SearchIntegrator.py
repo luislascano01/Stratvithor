@@ -8,7 +8,7 @@ import torch.cuda
 from Backend.Web_Search.src.GoogleSearchCaller import GoogleSearchCaller
 from Backend.Web_Search.src.HTMLArticleScrapper import HTMLArticleScrapper
 from Backend.Web_Search.src.PDFScrapper import PDFScrapper
-from Backend.Web_Search.src.SummarizationTask import SummarizerQueue
+from Backend.Web_Search.src.SummarizationTask import PrioritySummarizerQueue
 from Backend.Web_Search.src.QuerySynthesizer import QuerySynthesizer
 from Credentials.CredentialManager import CredentialManager
 
@@ -62,8 +62,7 @@ class SearchIntegrator:
             self.device = -1
 
         # Instantiate SummarizerQueue if not provided.
-        from Backend.Web_Search.src.SummarizationTask import SummarizerQueue
-        self.summarizer_obj = summarizer_obj if summarizer_obj is not None else SummarizerQueue(device=self.device)
+        self.summarizer_obj = summarizer_obj if summarizer_obj is not None else PrioritySummarizerQueue(...)
 
 
     def detect_resource_type(self, url: str) -> str:
@@ -112,8 +111,8 @@ class SearchIntegrator:
 
         # Re-create the scrapper objects to avoid pickling issues with the main instance
         web_scrapper = HTMLArticleScrapper(self.general_prompt, self.particular_prompt,
-                                           summarizer_obj=self.summarizer_obj)
-        pdf_scrapper = PDFScrapper(self.general_prompt, self.particular_prompt, summarizer_obj=self.summarizer_obj)
+                                           summarizer_obj=None)
+        pdf_scrapper = PDFScrapper(self.general_prompt, self.particular_prompt, summarizer_obj=None)
 
         custom_scrappers = {"pdf": pdf_scrapper, "html": web_scrapper}
 
@@ -205,9 +204,25 @@ class SearchIntegrator:
                     try:
                         result = fut.result()
                         if result is not None:
-                            processed_resources.append(result)
+                            text_to_summarize = result["scrapped_text"]
+                            # Submit the summarization task asynchronously
+                            task = self.summarizer_obj.summarize_async(
+                                text=text_to_summarize,
+                                priority=10,  # or any priority
+                                max_length=200,
+                                min_length=30,
+                                do_sample=False
+                            )
+                            # Possibly store references to task if you want to gather results later.
+                            # e.g. store (result, task) in a list for final retrieval
+                            processed_resources.append((result, task))
                     except Exception as e:
                         logging.error(f"Error fetching result: {e}")
+
+            # later, once all scraping is done, you can wait for all summarizations:
+            for (res, task) in processed_resources:
+                task.event.wait()  # wait for summarization
+                res["scrapped_text"] = task.result
 
         return processed_resources
 
