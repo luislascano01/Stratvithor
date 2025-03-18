@@ -102,7 +102,76 @@ class PDFScrapper:
         logging.error(f"Failed to fetch {url} after {max_retries} attempts.")
         return None
 
+    def process_resource_raw(self, url: str) -> str:
+        """
+        Processes the PDF resource from the given URL by fetching the PDF, extracting page-wise text,
+        applying keyword extraction and embedding-based filtering, and combining selected pages.
+
+        GPU-based summarization is not performed here. Instead, this method returns the raw extracted text,
+        allowing GPU summarization tasks to be queued later by a dedicated aggregator.
+
+        Parameters:
+            url (str): The URL of the PDF resource.
+
+        Returns:
+            str: The combined raw text extracted from the selected pages, or an empty string if extraction fails.
+        """
+        # Fetch the PDF data stealthily.
+        pdf_data = self._fetch_pdf_stealthily(url)
+        if not pdf_data:
+            return ""
+
+        # Extract text from each page of the PDF.
+        pages_text = self._extract_pages_text(pdf_data)
+        if not pages_text:
+            logging.info("No pages found or unable to extract text from the PDF.")
+            return ""
+
+        # 1) Extract keywords using a small local LLM based on the general prompt.
+        keywords = self._extract_keywords_llm(self.general_prompt, max_keywords=5)
+        logging.info(f"PDF keywords: {keywords}")
+        if not keywords:
+            logging.info("No keywords could be extracted from the LLM approach.")
+            return ""
+
+        # 2) Pre-select pages based on keyword frequency.
+        selected_indices = self._select_pages_by_keywords(pages_text, keywords, top_k=self.keyword_top_k_pages)
+        if not selected_indices:
+            logging.info("No pages matched the keyword filter.")
+            return ""
+
+        # 3) Filter the selected pages further using embedding-based relevance.
+        sub_pages_text = [pages_text[idx] for idx in selected_indices]
+        relevant_sub_indices = self._filter_relevant_pages(sub_pages_text)
+        if not relevant_sub_indices:
+            logging.info("No pages found relevant after embedding filter.")
+            return ""
+
+        # Map sub-indices back to original page indices.
+        relevant_full_indices = [selected_indices[i] for i in relevant_sub_indices]
+
+        # 4) Apply continuity logic to include neighboring pages.
+        keep_indices = self._apply_continuity(relevant_full_indices, len(pages_text))
+
+        # 5) Combine the selected pages into a single raw text output.
+        combined_text = "\n\n".join([f"[PAGE {idx + 1}]\n{pages_text[idx]}" for idx in keep_indices])
+        return combined_text
+
     def process_resource(self, url: str) -> str:
+        """
+        Processes the PDF resource at the given URL.
+        This method now returns the raw, unsummarized text extracted from the PDF.
+
+        Parameters:
+            url (str): The URL of the PDF resource.
+
+        Returns:
+            str: The raw extracted text, without any GPU-based summarization.
+        """
+        return self.process_resource_raw(url)
+
+
+    def process_resource_with_summarization(self, url: str) -> str:
         """
         Main method:
           1) Fetch PDF from 'url' stealthily.

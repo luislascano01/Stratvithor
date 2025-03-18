@@ -43,7 +43,6 @@ class SearchRequest(BaseModel):
     cse_id: Optional[str] = Field(None, description="Optional Custom Search Engine ID.")
 
 
-
 @app.get("/")
 def read_root():
     logging.info("👋 Root endpoint accessed.")
@@ -64,6 +63,37 @@ async def health_check():
     """
     logging.info("💓 Health check requested.")
     return {"status": "ok"}
+
+
+async def gpu_health():
+    """
+    GPU Health Check Endpoint
+
+    Returns:
+        A JSON response with the GPU status of the API.
+        Example:
+            {
+                "cuda_available": true,
+                "device_count": 2,
+                "devices": ["NVIDIA GeForce RTX 3080", "NVIDIA GeForce RTX 3080"]
+            }
+    """
+    logging.info("🔍 Checking GPU health status...")
+    try:
+        import torch
+    except ImportError:
+        logging.error("PyTorch is not installed. Cannot perform GPU health check.")
+        raise HTTPException(status_code=500, detail="PyTorch is not installed. GPU health check cannot be performed.")
+
+    cuda_available = torch.cuda.is_available()
+    if cuda_available:
+        device_count = torch.cuda.device_count()
+        devices = [torch.cuda.get_device_name(i) for i in range(device_count)]
+        logging.info(f"✅ CUDA is available with {device_count} device(s): {devices}")
+        return {"cuda_available": True, "device_count": device_count, "devices": devices}
+    else:
+        logging.info("❌ CUDA is not available.")
+        return {"cuda_available": False, "device_count": 0, "devices": []}
 
 
 class SearchAggregationResult(BaseModel):
@@ -94,6 +124,7 @@ class SearchResponse(BaseModel):
         results: A list of aggregated search results.
     """
     results: List[SearchAggregationResult] = Field(..., description="List of aggregated search results.")
+
 
 @app.post(
     "/search",

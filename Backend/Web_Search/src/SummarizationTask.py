@@ -66,6 +66,56 @@ class PrioritySummarizerQueue:
         self.worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
         self.worker_thread.start()
 
+    def chunk_text(self, text: str, chunk_size: int = 512) -> list[str]:
+        words = text.split()
+        chunks = []
+        for i in range(0, len(words), chunk_size):
+            chunk = " ".join(words[i: i + chunk_size])
+            chunks.append(chunk)
+        return chunks
+
+    def summarize_in_chunks(self, text: str,
+                            priority: int = 10,
+                            chunk_size: int = 512,
+                            max_length: int = 300,
+                            min_length: int = 30,
+                            do_sample: bool = False) -> str:
+        """
+        Splits text into multiple chunks, summarizes each chunk,
+        and concatenates partial summaries into a single result.
+        """
+        # 1) Break text into smaller chunks
+        chunks = self.chunk_text(text, chunk_size)
+        partial_summaries = []
+
+        for ch in chunks:
+            # 2) Enqueue each chunk as normal
+            task = self.summarize_async(ch,
+                                        priority=priority,
+                                        max_length=max_length,
+                                        min_length=min_length,
+                                        do_sample=do_sample)
+            # 3) Wait for the chunk's summarization
+            task.event.wait()
+            partial_summaries.append(task.result or "")
+
+        # 4) Optionally re-summarize the partial_summaries themselves
+        #    if you want an overall summary:
+        combined_text = " ".join(partial_summaries)
+        if len(combined_text.split()) > chunk_size:
+            # Summarize the combined summary if it's still large
+            final_task = self.summarize_async(
+                combined_text,
+                priority=priority,
+                max_length=max_length,
+                min_length=min_length,
+                do_sample=do_sample
+            )
+            final_task.event.wait()
+            return final_task.result or ""
+        else:
+            return combined_text
+
     def summarize_async(self, text: str, priority: int = 10, max_length: int = 200,
                         min_length: int = 30, do_sample: bool = False,
                         deadline: float = None):

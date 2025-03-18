@@ -92,7 +92,58 @@ class HTMLArticleScrapper:
         fallback_unblocker = PaywallUnblocker(wait_time=5)
         return fallback_unblocker.unblock_url(url)
 
+    def process_resource_raw(self, url: str) -> str:
+        """
+        Processes the HTML resource at the given URL by fetching, cleaning,
+        and extracting the main article text without performing GPU-based summarization.
+
+        Parameters:
+            url (str): The URL of the web resource to process.
+
+        Returns:
+            str: The raw extracted article text (unsummarized).
+        """
+        # Fetch the HTML content stealthily, using retries and fallback methods.
+        html_content = self._fetch_html_stealthily(url)
+        if not html_content:
+            return ""
+
+        # Parse the HTML using BeautifulSoup.
+        soup = BeautifulSoup(html_content, "html.parser")
+
+        # Remove boilerplate elements (e.g., navigation, footer, scripts).
+        self._remove_boilerplate(soup)
+
+        # Extract primary text blocks from the HTML.
+        text_blocks = self._extract_text_blocks(soup)
+        if not text_blocks:
+            logging.info("[INFO] No text blocks found, trying alternative extraction.")
+            text_blocks = self._extract_alternative_text_blocks(soup)
+
+        # Extract the main article content from the text blocks.
+        main_article = self._extract_main_article_from_blocks(text_blocks)
+
+        # Clean the extracted article text.
+        cleaned_article = self._clean_text(main_article)
+
+        # IMPORTANT: Do not apply summarization here to avoid GPU multithread issues.
+        return cleaned_article
+
     def process_resource(self, url: str) -> str:
+        """
+        Processes the HTML resource at the given URL.
+        This method now returns the raw, unsummarized article text.
+        GPU-based summarization is deferred to the aggregator.
+
+        Parameters:
+            url (str): The URL of the web resource.
+
+        Returns:
+            str: The raw extracted article text.
+        """
+        return self.process_resource_raw(url)
+
+    def process_resource_w_summarization(self, url: str) -> str:
         html_content = self._fetch_html_stealthily(url)
         if not html_content:
             return ""
