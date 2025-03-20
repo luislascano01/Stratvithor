@@ -57,7 +57,7 @@ def main():
     # Instantiate the SearchIntegrator with your prompts and credentials.
     search_integrator = SearchIntegrator(
         general_prompt="Briefly describe the history of the company, what it does, where it's located and in the last paragraph, explain how much the company has generated in revenues over the last quarter, how much in EBITDA (show margin percentage), how much debt the company has on its balance sheet and what is the total leverage (also net of cash).",
-        particular_prompt="Tesla",
+        particular_prompt="Kodak",
         cred_mngr=cred_mngr,
         operating_path=operating_path
     )
@@ -66,6 +66,7 @@ def main():
     aggregated_response = search_integrator.get_aggregated_response(llm_api_url=llama_url)
 
     # Print out the aggregated response in a formatted manner.
+    print("#"*100)
     print("Aggregated Response:")
     for resource in aggregated_response:
         print(format_resource(resource))

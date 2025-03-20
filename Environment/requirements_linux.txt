@@ -346,3 +346,4 @@ w3lib
 yfinance
 zope-interface
 undetected-chromedriver
+newspaper3k

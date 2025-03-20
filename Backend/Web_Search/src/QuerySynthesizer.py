@@ -1,4 +1,6 @@
 import json
+import logging
+
 import requests
 import re  # New import for regex
 from typing import List, Optional
@@ -11,6 +13,8 @@ class QuerySynthesizer:
     Also includes functionality to extract a company's stock ticker symbol
     given relevant text.
     """
+
+    model_offload_pyld = {"model": "gemma2:27b", "keep_alive": 0}
 
     def __init__(self, llm_api_url: str):
         """
@@ -37,8 +41,25 @@ class QuerySynthesizer:
         headers = {"Content-Type": "application/json"}
 
         try:
+            logging.info("🚀 Sending prompt to LLM API...")
             response = requests.post(self.llm_api_url, headers=headers, json=payload, timeout=5000)
-            response.raise_for_status()  # Raise an error for HTTP failures
+            print("📨 Prompt request sent. Checking response status...")
+
+            # If it's a local model - Ollama, we should off-load it from GPU memory.
+            if 'localhost' in self.llm_api_url:
+                logging.info("🔌 Attempting to offload the model from GPU memory...")
+                offload_response = requests.post(self.llm_api_url, headers=headers, json=self.model_offload_pyld,
+                                                 timeout=5000)
+
+                if offload_response.status_code == 200:
+                    print("✅ Model successfully offloaded from GPU memory!")
+                else:
+                    logging.error(f"❌ Model offload request failed with status code: {offload_response.status_code}")
+
+            # Raise an error for HTTP failures on the main LLM request
+            response.raise_for_status()
+            logging.info("✅ QuerySynth LLM response received successfully!")
+
 
             # Ensure response is completely received
             data = response.json()
@@ -59,16 +80,15 @@ class QuerySynthesizer:
                     # If group(1) matched, it's the triple-backtick version;
                     # otherwise, group(2) contains the entire text.
                     extracted_content = json_match.group(1) or json_match.group(2)
-                    print("✅ QuerySynthesizer: Extracted JSON from LLM:\n", extracted_content+"\n")
+                    logging.info("✅ QuerySynthesizer: Extracted JSON from LLM:\n", extracted_content+"\n")
                     return extracted_content
                 else:
-                    print("❌ QuerySynthesizer: No JSON formatting detected for search prompts; returning raw message.")
+                    logging.info("❌ QuerySynthesizer: No JSON formatting detected for search prompts; returning raw message.")
                     return None
 
             return None  # Return None if no valid response found
-
         except requests.exceptions.RequestException as e:
-            print(f"Error calling LLM: {e}")
+            logging.error(f"❌ QuerySynth: Error calling LLM: {e}")
             return None
 
     def generate_search_prompts(self, incoming_prompt: str) -> List[str]:

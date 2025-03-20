@@ -146,7 +146,7 @@ class GoogleSearchCaller:
             keywords: List[str],
             api_key: str,
             cse_id: str,
-            num_results: int = 5
+            num_results: int = 3
     ) -> List[Dict]:
         """
         1) Build the query from 'base_term' + 'keywords'.

@@ -383,6 +383,7 @@ if __name__ == "__main__":
     scrapper = PDFScrapper(
         general_prompt="What can you tell me about Nvidia's consumer GPU market?",
         particular_prompt="RTX4090, Consumer GPU, Gaming ",
+        summarizer_obj=None,
         model_name="sentence-transformers/all-MiniLM-L6-v2",
         similarity_threshold=0.35,
         continuity_window=1,
@@ -392,7 +393,7 @@ if __name__ == "__main__":
         # Use Flan-T5-Small as a local LLM for keyword extraction
         keyword_llm_model="google/flan-t5-small"
     )
-    url = "https://nvidianews.nvidia.com/_gallery/download_pdf/646e7438a1383555093ab633/"
+    url = "https://www.etui.org/sites/default/files/Chapter%207_2.pdf."
     result = scrapper.process_resource(url)
     print("===== SCRAPED & SUMMARIZED PDF CONTENT =====")
     print(result)

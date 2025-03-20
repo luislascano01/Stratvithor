@@ -1,243 +1,206 @@
-
-import threading
 import time
-from typing import Optional
+import torch
+import multiprocessing
 from dataclasses import dataclass, field
-import heapq
+from transformers import pipeline
+import uuid
 
+# -----------------------------------------------------------------------------
+# Data classes for requests and responses
+# -----------------------------------------------------------------------------
 @dataclass(order=True)
-class SummarizationTask:
-    """
-    A data class representing a summarization request with priority ordering.
-    Lower 'priority' means processed first in a PriorityQueue.
-    """
+class SummarizationRequest:
     priority: int
+    request_id: str = field(compare=False)
     text: str = field(compare=False)
-    max_length: int = field(default=200, compare=False)
+    max_length: int = field(default=300, compare=False)
     min_length: int = field(default=30, compare=False)
     do_sample: bool = field(default=False, compare=False)
-    deadline: Optional[float] = field(default=None, compare=False)
-    result: Optional[str] = field(default=None, compare=False)
-    event: threading.Event = field(default_factory=threading.Event, compare=False)
+    deadline: float = field(default=None, compare=False)
 
-    def expired(self) -> bool:
-        """Return True if the task's deadline has passed."""
-        return (self.deadline is not None) and (time.time() > self.deadline)
-import threading
-import heapq
-import time
-from queue import Empty
-from transformers import pipeline
-import torch
+@dataclass
+class SummarizationResponse:
+    request_id: str
+    summary_text: str = ""
+    error: str = ""
 
-class PrioritySummarizerQueue:
+# -----------------------------------------------------------------------------
+# The single GPU summarizer service class
+# -----------------------------------------------------------------------------
+class SingleGPUSummarizerService:
     """
-    A single-GPU summarizer queue that processes tasks in priority order (lowest priority number first).
-    Once the queue is empty, we optionally offload the model.
+    A single-GPU summarizer service. Only one process loads the heavy GPU pipeline.
+    Client processes send SummarizationRequest objects via a queue and receive
+    SummarizationResponse objects from a response queue.
+
+    NOTE: This minimal fix uses a regular multiprocessing.Queue rather than
+          a PriorityQueue. Requests are handled in FIFO order (not by priority).
     """
-
-    def __init__(self, summarizer_pipeline=None, device: int = 0, unload_when_idle: bool = True):
+    def __init__(self, device: int = 0):
         """
-        :param summarizer_pipeline: Optionally pass an existing HF pipeline.
-        :param device: 0 for GPU, -1 for CPU, etc.
-        :param unload_when_idle: If True, automatically unloads model when queue is empty.
+        Initializes the service by creating the IPC queues and launching the service process.
+        :param device: 0 for GPU (if available), -1 for CPU.
         """
-        if summarizer_pipeline is None:
-            summarizer_pipeline = pipeline(
-                "summarization",
-                model="philschmid/bart-large-cnn-samsum",
-                tokenizer="philschmid/bart-large-cnn-samsum",
-                device=device  # 0 for GPU, -1 for CPU
-            )
-        self.summarizer = summarizer_pipeline
-        self.unload_when_idle = unload_when_idle
+        self.device = device
+        self.request_queue = multiprocessing.Queue()
+        self.response_queue = multiprocessing.Queue()
 
-        # We'll store tasks in a min-heap
-        self._heap = []
-        self._heap_lock = threading.Lock()
+        self.process = multiprocessing.Process(
+            target=self._service_loop,
+            args=(self.request_queue, self.response_queue, self.device),
+            daemon=True
+        )
+        self.process.start()
 
-        # A condition variable to notify the worker when new tasks arrive
-        self._cv = threading.Condition(self._heap_lock)
-
-        # Used to signal the worker to exit
-        self._shutdown_flag = False
-
-        # Start worker thread
-        self.worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
-        self.worker_thread.start()
-
-    def chunk_text(self, text: str, chunk_size: int = 512) -> list[str]:
+    def _insert_linebreaks(self, text: str, words_per_line: int = 20) -> str:
+        """
+        Inserts a double newline every `words_per_line` words to format the text into paragraphs.
+        """
         words = text.split()
-        chunks = []
-        for i in range(0, len(words), chunk_size):
-            chunk = " ".join(words[i: i + chunk_size])
-            chunks.append(chunk)
-        return chunks
+        lines = []
+        for i in range(0, len(words), words_per_line):
+            lines.append(" ".join(words[i:i + words_per_line]))
+        return "\n\n".join(lines)
 
-    def summarize_in_chunks(self, text: str,
-                            priority: int = 10,
-                            chunk_size: int = 512,
-                            max_length: int = 300,
-                            min_length: int = 30,
-                            do_sample: bool = False) -> str:
+    def _service_loop(self, request_queue, response_queue, device):
         """
-        Splits text into multiple chunks, summarizes each chunk,
-        and concatenates partial summaries into a single result.
+        The main loop of the GPU summarizer service.
+        It loads the summarization pipeline on the given device and processes incoming requests.
         """
-        # 1) Break text into smaller chunks
-        chunks = self.chunk_text(text, chunk_size)
-        partial_summaries = []
+        print(f"[GPU Service] Loading summarizer pipeline on device {device} ...")
+        summarizer = pipeline(
+            "summarization",
+            model="philschmid/bart-large-cnn-samsum",
+            tokenizer="philschmid/bart-large-cnn-samsum",
+            device=device
+        )
+        print("[GPU Service] Pipeline loaded.")
 
-        for ch in chunks:
-            # 2) Enqueue each chunk as normal
-            task = self.summarize_async(ch,
-                                        priority=priority,
-                                        max_length=max_length,
-                                        min_length=min_length,
-                                        do_sample=do_sample)
-            # 3) Wait for the chunk's summarization
-            task.event.wait()
-            partial_summaries.append(task.result or "")
+        tokenizer = summarizer.tokenizer
+        max_input_length = tokenizer.model_max_length  # e.g., 1024 for many models
 
-        # 4) Optionally re-summarize the partial_summaries themselves
-        #    if you want an overall summary:
-        combined_text = " ".join(partial_summaries)
-        if len(combined_text.split()) > chunk_size:
-            # Summarize the combined summary if it's still large
-            final_task = self.summarize_async(
-                combined_text,
-                priority=priority,
-                max_length=max_length,
-                min_length=min_length,
-                do_sample=do_sample
-            )
-            final_task.event.wait()
-            return final_task.result or ""
-        else:
-            return combined_text
-
-    def summarize_async(self, text: str, priority: int = 10, max_length: int = 200,
-                        min_length: int = 30, do_sample: bool = False,
-                        deadline: float = None):
-        """
-        Enqueue a new SummarizationTask. Returns the task object immediately.
-        The caller can wait on task.event or check task.result asynchronously.
-        :param priority: Lower = higher priority.
-        :param deadline: A timestamp (time.time() + N). If time passes that, we skip it.
-        """
-        task = SummarizationTask(priority, text, max_length, min_length, do_sample, deadline)
-        with self._cv:
-            heapq.heappush(self._heap, task)
-            self._cv.notify()  # Wake the worker
-        return task
-
-    def summarize_blocking(self, text: str, priority: int = 10, max_length: int = 200,
-                           min_length: int = 30, do_sample: bool = False,
-                           deadline: float = None) -> str:
-        """
-        Synchronous summarization call. Pushes a task, waits for it to finish, returns the result.
-        """
-        task = self.summarize_async(text, priority, max_length, min_length, do_sample, deadline)
-        task.event.wait()  # Wait until the worker finishes
-        return task.result or ""
-
-    def _worker_loop(self):
-        """
-        Continuously pop tasks from the priority heap, summarize them, and set result.
-        If queue is empty and unload_when_idle is True, unload the model from GPU until new tasks come in.
-        """
         while True:
-            with self._cv:
-                while not self._heap and not self._shutdown_flag:
-                    # Possibly unload the model if configured
-                    if self.unload_when_idle and self.summarizer is not None:
-                        self._unload_model()
-                    self._cv.wait()
+            req = request_queue.get()
+            if req is None:
+                break
 
-                if self._shutdown_flag:
-                    # Flush leftover tasks
-                    while self._heap:
-                        task = heapq.heappop(self._heap)
-                        task.result = None
-                        task.event.set()
-                    return
-
-                task = heapq.heappop(self._heap)
-
-            # We have a task. Possibly reload model if it was unloaded
-            if self.summarizer is None:
-                self._reload_model()
-
-            # Check if expired
-            if task.expired():
-                task.result = None
-                task.event.set()
+            if req.deadline is not None and time.time() > req.deadline:
+                resp = SummarizationResponse(
+                    request_id=req.request_id,
+                    error="Deadline expired"
+                )
+                response_queue.put(resp)
                 continue
 
-            # Summarize
-            try:
-                output = self.summarizer(
-                    task.text,
-                    max_length=task.max_length,
-                    min_length=task.min_length,
-                    do_sample=task.do_sample
-                )
-                task.result = output[0]["summary_text"]
-            except Exception as e:
-                task.result = None
-            finally:
-                task.event.set()
+            if torch.cuda.is_available() and device >= 0:
+                total_mem = torch.cuda.get_device_properties(device).total_memory
+                while torch.cuda.memory_allocated(device) > 0.95 * total_mem:
+                    time.sleep(0.5)
 
-    def flush_all(self):
+            try:
+                # Pre-truncate input if needed.
+                encoded_input = tokenizer.encode(req.text, truncation=True)
+                if len(encoded_input) > max_input_length:
+                    req_text = tokenizer.decode(encoded_input[:max_input_length])
+                else:
+                    req_text = req.text
+
+                output = summarizer(
+                    req_text,
+                    max_length=req.max_length,
+                    min_length=req.min_length,
+                    do_sample=req.do_sample,
+                    truncation=True
+                )
+                summary_text = output[0]["summary_text"]
+                # Format the summary by inserting line breaks every 20 words.
+                formatted_summary = self._insert_linebreaks(summary_text, words_per_line=20)
+                resp = SummarizationResponse(
+                    request_id=req.request_id,
+                    summary_text=formatted_summary
+                )
+            except Exception as e:
+                resp = SummarizationResponse(
+                    request_id=req.request_id,
+                    error=f"{type(e).__name__}: {str(e)}"
+                )
+
+            response_queue.put(resp)
+
+        del summarizer
+        print("[GPU Service] Service loop exiting.")
+
+    def submit_request(self, text: str, priority: int = 10,
+                       max_length: int = 300, min_length: int = 30,
+                       do_sample: bool = False, deadline: float = None) -> str:
         """
-        Clear all pending tasks from the queue.
-        Already-running task in worker won't be interrupted, but no new tasks will be processed.
+        Submits a summarization request to the service.
+        Returns the generated unique request_id.
         """
-        with self._cv:
-            while self._heap:
-                t = heapq.heappop(self._heap)
-                t.result = None
-                t.event.set()
+        request_id = str(uuid.uuid4())
+        req = SummarizationRequest(
+            priority=priority,
+            request_id=request_id,
+            text=text,
+            max_length=max_length,
+            min_length=min_length,
+            do_sample=do_sample,
+            deadline=deadline
+        )
+        self.request_queue.put(req)
+        return request_id
+
+    def get_response(self, request_id: str, timeout: float = None) -> SummarizationResponse:
+        """
+        Blocks until the response with the given request_id is found.
+        (For simplicity, this example uses a polling method.)
+        """
+        start = time.time()
+        while True:
+            try:
+                resp = self.response_queue.get(timeout=timeout)
+                if resp.request_id == request_id:
+                    return resp
+            except Exception:
+                break
+            if timeout is not None and (time.time() - start) > timeout:
+                break
+
+        return SummarizationResponse(
+            request_id=request_id,
+            error="Response not found within timeout"
+        )
 
     def shutdown(self):
         """
-        Signal the worker to exit, flush tasks, and join the thread.
+        Shuts down the service by sending a sentinel value to the request queue and joining the process.
         """
-        with self._cv:
-            self._shutdown_flag = True
-            self._cv.notify_all()
-        self.worker_thread.join()
-        # Optionally unload the model here too
-        self._unload_model()
+        self.request_queue.put(None)
+        self.process.join()
 
-    def _unload_model(self):
-        """
-        Frees GPU memory by deleting the pipeline and calling torch.cuda.empty_cache().
-        """
-        if self.summarizer is not None:
-            del self.summarizer
-            self.summarizer = None
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
 
-    def _reload_model(self):
-        """
-        Reloads the summarization model onto the GPU if it was unloaded.
-        """
-        if self.summarizer is None:
-            self.summarizer = pipeline(
-                "summarization",
-                model="philschmid/bart-large-cnn-samsum",
-                tokenizer="philschmid/bart-large-cnn-samsum",
-                device=0
-            )
+# -----------------------------------------------------------------------------
+# Example usage (only runs if executed directly)
+# -----------------------------------------------------------------------------
+if __name__ == '__main__':
+    service = SingleGPUSummarizerService(device=0)
 
-    # Optional: allow immediate usage, skipping the background thread if you want
-    # a direct call that doesn't rely on the queue or re-raises exceptions, etc.
+    sample_text = (
+        "Tesla is a technology and automotive company that designs, develops, "
+        "and manufactures electric vehicles, energy storage systems, and solar products. "
+        "It has revolutionized the automotive industry with its cutting-edge technology. "
+        "Recent reports indicate that Tesla generated impressive revenue figures, with "
+        "significant EBITDA margins and a carefully managed debt balance sheet."
+    )
 
-    def __del__(self):
-        """Attempt a graceful shutdown if not already done."""
-        try:
-            self.shutdown()
-        except:
-            pass
+    req_id = service.submit_request(sample_text, priority=10, max_length=150, min_length=30)
+    print(f"[Main] Submitted summarization request with ID: {req_id}")
+
+    response = service.get_response(req_id, timeout=30)
+    if response.error:
+        print(f"[Main] Error: {response.error}")
+    else:
+        print(f"[Main] Summary:\n{response.summary_text}")
+
+    service.shutdown()
+    print("[Main] GPU summarizer service has been shut down.")
