@@ -207,6 +207,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Tooltips
         nodeSelection.append("title").text(d => d.label);
+        //nodeSelection.append("title").text("loading");
+
 
         // Enable dragging
         nodeSelection.call(d3.drag()
