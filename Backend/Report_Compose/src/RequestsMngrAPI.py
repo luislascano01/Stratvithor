@@ -4,10 +4,12 @@ import time
 import logging
 import asyncio
 import json  # for JSON handling
-
+import tempfile
+from docx import Document
 from fastapi import FastAPI, BackgroundTasks, HTTPException, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from pydantic import BaseModel
 from typing import Dict
@@ -231,6 +233,9 @@ async def run_report_task(task_id: str, company_name: str, mock: bool, web_searc
         active_tasks[task_id]["status"] = "failed"
         active_tasks[task_id]["report"] = str(e)
 
+
+
+
 # ----- Real-Time Updates via WebSocket -----
 @app.websocket("/ws/{task_id}")
 async def websocket_task_updates(websocket: WebSocket, task_id: str):
@@ -276,6 +281,49 @@ async def websocket_task_updates(websocket: WebSocket, task_id: str):
             })
     except WebSocketDisconnect:
         logging.info(f"WebSocket disconnected for task_id={task_id}")
+
+
+@app.get("/download_report/{task_id}")
+async def download_report(task_id: str, file_type: str = "docx"):
+    """
+    Download the final report for a completed task.
+    The 'file_type' query parameter determines which format to generate.
+    """
+    # Verify that the task exists.
+    if task_id not in active_tasks:
+        raise HTTPException(status_code=404, detail="Task not found.")
+
+    task = active_tasks[task_id]
+    # Ensure the task is completed.
+    if task["status"] != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail="Task is still executing. Please wait until it completes before downloading the report."
+        )
+
+    integrator = task["integrator"]
+
+    if file_type.lower() == "docx":
+        try:
+            report_path = integrator.generate_docx_report()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error generating DOCX report: {e}")
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    elif file_type.lower() == "pdf":
+        try:
+            report_path = integrator.generate_pdf_report()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error generating PDF report: {e}")
+        media_type = "application/pdf"
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported file type.")
+
+    return FileResponse(
+        report_path,
+        media_type=media_type,
+        filename=f"{task_id}.{file_type.lower()}"
+    )
+
 
 # ----------------------------------------------------------------------
 #   MAIN ENTRY POINT to run the server on port 8181

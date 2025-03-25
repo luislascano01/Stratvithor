@@ -260,6 +260,10 @@ function initGraph(dagData) {
         .on("click", (event, d) => {
             const details = nodeDetails[d.id];
             if (details) displayNodeDetails(d.id, details);
+        })
+        .each(function (d) {
+            // Append a <title> element to each node for the tooltip.
+            d3.select(this).append("title").text("No Title");
         });
 
     nodeSelection.call(d3.drag()
@@ -311,7 +315,7 @@ function autoCenterGraph() {
             d3.zoomIdentity
                 .translate(width / 5 - 54, height / 5)
                 .scale(scale)
-                .translate(-centerX-20, -centerY+7)
+                .translate(-centerX - 20, -centerY + 7)
         );
 }
 
@@ -355,7 +359,6 @@ function openWebSocketForTask(taskId) {
     ws.onclose = () => console.log("WebSocket closed for task:", taskId);
     ws.onerror = err => console.error("WebSocket error:", err);
 }
-
 function updateNodeStatus(nodeId, status, result) {
     const node = nodes.find(n => n.id == nodeId);
     if (!node) return;
@@ -380,6 +383,33 @@ function updateNodeStatus(nodeId, status, result) {
         .filter(d => d.id == nodeId)
         .transition().duration(500)
         .attr("fill", newColor);
+
+    // Update the tooltip using the "result" parameter
+    svg.selectAll("circle")
+        .filter(d => d.id == nodeId)
+        .each(function(d) {
+            const sel = d3.select(this);
+            // Parse result if it's a string, otherwise use it as an object
+            let resultObj = {};
+            if (typeof result === "string") {
+                try {
+                    resultObj = JSON.parse(result);
+                } catch (e) {
+                    resultObj = {};
+                }
+            } else if (result) {
+                resultObj = result;
+            }
+            // Extract the section title from resultObj
+            const tooltipText = resultObj.section_title || resultObj.section_tile || "No Title";
+            // Update existing <title> element or append if missing
+            let titleEl = sel.select("title");
+            if (!titleEl.empty()) {
+                titleEl.text(tooltipText);
+            } else {
+                sel.append("title").text(tooltipText);
+            }
+        });
 }
 
 // --- Node Details Display ---

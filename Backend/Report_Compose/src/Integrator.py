@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import random
+import tempfile
 from typing import Dict
 from xml.etree.ElementTree import indent
 
@@ -200,8 +201,8 @@ class Integrator:
                 if not prompt["system"]:
                     chat_history.append({
                         "entity": "llm",
-                        "text": str(node_result["result"]['llm']) # Using llm here is very important to avoid
-                                                                  # input overflow of ancestor online_data
+                        "text": str(node_result["result"]['llm'])  # Using llm here is very important to avoid
+                        # input overflow of ancestor online_data
                     })
 
         return chat_history
@@ -261,3 +262,142 @@ class Integrator:
 
         print(json.dumps(self.results_dag.to_json(), indent=4))
         return self.results_dag.to_json()
+
+    def generate_docx_report(self, llm_format: str = "Markdown") -> str:
+        """
+        Generates a DOCX report using the final DAG results.
+
+        Parameters:
+            llm_format (str): The format of the LLM response.
+                              Currently, only "Markdown" is supported.
+                              Future formats (e.g. LaTeX) can be implemented here.
+
+        Process:
+          1. Parse the final DAG results (stored as a JSON string) into a Python dictionary.
+          2. Obtain the node order via a topological sort from the prompt DAG.
+          3. Extract the prompt set name from the YAML file path.
+          4. Delegate to a helper method based on the specified llm_format.
+
+        Returns:
+            str: The temporary file path of the generated DOCX report.
+
+        Critical Decisions:
+          - We assume the LLM responses are in Markdown format.
+          - By delegating to a helper method, we keep the report-generation logic modular.
+        """
+        # Parse the results DAG.
+        try:
+            dag_obj = json.loads(self.results_dag.to_json())
+        except Exception as e:
+            raise Exception(f"Error parsing DAG data: {e}")
+
+        # Get the node order from the prompt DAG.
+        dag_graph = self.prompt_manager.prompt_dag
+        node_order = list(nx.topological_sort(dag_graph))
+
+        # Extract the prompt set name.
+        prompt_set = os.path.basename(self.yaml_file_path).replace(".yaml", "")
+
+        # Delegate to the helper method based on llm_format.
+        if llm_format.lower() == "markdown":
+            return self.generate_docx_from_md(dag_obj, node_order, prompt_set)
+        else:
+            # Future implementations could support additional formats.
+            raise Exception(f"Unsupported llm_format: {llm_format}. Only 'Markdown' is currently supported.")
+
+    def generate_docx_from_md(self, dag_obj: dict, node_order: list, prompt_set: str) -> str:
+        """
+        Helper method that generates a DOCX report from Markdown-formatted LLM responses.
+
+        Report Structure:
+          - Title and Metadata: The report title, prompt set, and focus message.
+          - Main Sections: For each node, add a section heading (with the node's section title)
+            and insert the LLM response as plain text.
+          - Appendix: A dedicated section listing the online data for each node.
+
+        Parameters:
+            dag_obj (dict): The parsed results DAG.
+            node_order (list): A topologically sorted list of node IDs.
+            prompt_set (str): The prompt set name, derived from the YAML file path.
+
+        Returns:
+            str: The temporary file path of the generated DOCX report.
+
+        Critical Decisions:
+          - We assume that the LLM responses are in Markdown. For now, we insert the Markdown
+            as plain text into the document. In the future, a richer conversion (e.g., via pypandoc)
+            could be implemented.
+          - The report is split into main sections (for each node) and an appendix for online data.
+        """
+        from docx import Document
+
+        # Create a new document.
+        doc = Document()
+        doc.add_heading("Aggregated Report", 0)
+        doc.add_paragraph(f"Prompt Set: {prompt_set}")
+        doc.add_paragraph(f"Focus Message: {self.focus_message}")
+        doc.add_paragraph("")  # Blank line for spacing.
+
+        # Main report sections.
+        for idx, node_id in enumerate(node_order, start=1):
+            node_result = dag_obj.get(str(node_id)) or dag_obj.get(node_id)
+            if not node_result:
+                continue
+            # Extract the section title from the node result.
+            section_title = (node_result.get("result", {}).get("section_tile") or
+                             node_result.get("result", {}).get("section_title") or
+                             f"Section {idx}")
+            # Extract the LLM response.
+            llm_response = node_result.get("result", {}).get("llm", "No LLM response found.")
+
+            doc.add_heading(f"Section {idx}. {section_title}", level=1)
+            doc.add_paragraph(llm_response)
+
+        # Appendix for online data.
+        doc.add_heading("Appendix: Online Data", level=1)
+        for idx, node_id in enumerate(node_order, start=1):
+            node_result = dag_obj.get(str(node_id)) or dag_obj.get(node_id)
+            if not node_result:
+                continue
+            online_data = node_result.get("result", {}).get("online_data", "No online data found.")
+            section_title = (node_result.get("result", {}).get("section_tile") or
+                             node_result.get("result", {}).get("section_title") or
+                             f"Section {idx}")
+            doc.add_heading(f"Section {idx} Online Data - {section_title}", level=2)
+            doc.add_paragraph(str(online_data))
+
+        # Save the document to a temporary file.
+        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp_file.name)
+        tmp_file.close()
+        return tmp_file.name
+
+    def generate_pdf_report(self) -> str:
+        """
+        Generates a PDF report using the final DAG results by first creating a DOCX report
+        and then converting it to PDF.
+        Returns the temporary file path of the generated PDF.
+        """
+        # First, generate the DOCX report.
+        docx_path = self.generate_docx_report()
+
+        # Now, convert the DOCX to PDF.
+        # For this example, we use the docx2pdf package.
+        # Ensure that docx2pdf is installed: pip install docx2pdf
+        try:
+            from docx2pdf import convert
+        except ImportError:
+            raise Exception("docx2pdf module is required for PDF conversion. Please install it.")
+
+        # Create a temporary PDF file path.
+        pdf_tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf_tmp_file.close()  # We'll let docx2pdf write to this file.
+
+        # Convert DOCX to PDF.
+        # docx2pdf.convert expects the input path and output path (or folder).
+        try:
+            convert(docx_path, pdf_tmp_file.name)
+        except Exception as e:
+            raise Exception(f"Error converting DOCX to PDF: {e}")
+
+        return pdf_tmp_file.name
