@@ -34,6 +34,9 @@ PROMPTS_DIR = "./Prompts"
 # GZip Middleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+# Hardcoded list of available download formats.
+AVAILABLE_DOWNLOAD_FORMATS = ["docx", "pdf"]
+
 class PromptUpdateRequest(BaseModel):
     yaml_file_path: str
 
@@ -72,6 +75,7 @@ STORAGE_DIR = "./Backend/Z_Req_data"
 
 # Ensure the storage directory exists
 os.makedirs(STORAGE_DIR, exist_ok=True)
+
 
 # Updated /save_task_result endpoint with metadata
 @app.post("/save_task_result/{task_id}")
@@ -117,13 +121,6 @@ async def save_task_result(task_id: str):
     }
 
     # Combine final report and metadata into one JSON object
-    # Build metadata
-    integrator = task["integrator"]
-    # Combine final report, DAG, and metadata
-    # Instead of:
-    # "dag": integrator.results_dag.to_json()
-
-    # Convert the string into a dict before adding it to final_data:
     dag_str = integrator.results_dag.to_json()  # This is likely a JSON string
     dag_obj = json.loads(dag_str)  # Convert string -> Python dict
 
@@ -156,6 +153,7 @@ async def save_task_result(task_id: str):
         "metadata": metadata
     }
 
+
 # Updated GET endpoint to load saved data along with metadata
 @app.get("/get_saved_task/{task_id}")
 async def get_saved_task(task_id: str):
@@ -184,10 +182,21 @@ async def get_saved_task(task_id: str):
         "prompt_set": prompt_content
     }
 
+
 # ----- Health Check Endpoint -----
 @app.get("/health")
 async def health_check():
     return {"status": "running"}
+
+
+# ----- New Endpoint: Download Options -----
+@app.get("/download_options")
+async def download_options():
+    """
+    Returns a list of available download formats.
+    """
+    return {"available_options": AVAILABLE_DOWNLOAD_FORMATS}
+
 
 # ----- Start Report Generation -----
 
@@ -197,6 +206,7 @@ class ReportRequest(BaseModel):
     mock: bool = False
     prompt_name: str
     web_search: bool  # New toggle parameter
+
 
 @app.post("/generate_report")
 async def generate_report(request: ReportRequest, background_tasks: BackgroundTasks):
@@ -223,6 +233,7 @@ async def generate_report(request: ReportRequest, background_tasks: BackgroundTa
 
     return {"task_id": task_id, "status": "Processing started"}
 
+
 async def run_report_task(task_id: str, company_name: str, mock: bool, web_search: bool):
     try:
         integrator = active_tasks[task_id]["integrator"]
@@ -232,8 +243,6 @@ async def run_report_task(task_id: str, company_name: str, mock: bool, web_searc
     except Exception as e:
         active_tasks[task_id]["status"] = "failed"
         active_tasks[task_id]["report"] = str(e)
-
-
 
 
 # ----- Real-Time Updates via WebSocket -----
