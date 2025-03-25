@@ -86,6 +86,7 @@ class Integrator:
         Initialize the Integrator with a path to the prompts YAML.
         Creates a PromptManager and a fresh ResultsDAG.
         """
+        self.yaml_file_path = yaml_file_path  # <-- Add this line to store the file path
         self.prompt_manager = PromptManager(yaml_file_path)
         self.results_dag = ResultsDAG()
         self.tasks = {}

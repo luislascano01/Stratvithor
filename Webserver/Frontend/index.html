@@ -7,78 +7,75 @@
     <title>Stratvithor - LLM Auto-prompt Interface</title>
     <link rel="icon" type="image/png" href="assets/images/LOGO.png">
 
-    <!-- Tailwind CSS via CDN (okay for dev, not recommended for production) -->
+    <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- D3.js -->
     <script src="https://d3js.org/d3.v6.min.js"></script>
-    <!-- Link to custom styles (including .breathing animation) -->
+    <!-- Link to custom styles -->
     <link rel="stylesheet" href="styles.css"/>
 </head>
-<body class="bg-gray-100 h-screen flex transition-all duration-300" id="body">
+<body class="bg-gray-100 h-screen flex flex-col transition-all duration-300" id="body">
 
-<!-- Sidebar for chat history (toggleable) -->
-<div id="sidebar" class="expanded bg-gray-800 text-white p-4 flex flex-col transition-all duration-300">
-    <h1 class="text-lg font-bold mb-4">Node-Prompt View</h1>
-    <ul id="node-view" class="flex-1 overflow-y-auto space-y-2">
-        <!-- Node details will be inserted here; overflow-y-auto ensures vertical scrolling -->
-    </ul>
-    <button class="mt-4 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded" onclick="newChat()">New Report</button>
-</div>
+<!-- Top Menu Bar -->
+<header class="w-full bg-gray-800 text-white p-4 flex items-center justify-between">
+    <div class="flex items-center space-x-4">
+        <button id="new-report-btn" class="bg-blue-500 hover:bg-blue-600 px-3 py-2 rounded" onclick="newChat()">New Report</button>
+        <button id="load-report-btn" class="bg-green-500 hover:bg-green-600 px-3 py-2 rounded">Load Previous Report</button>
+        <button id="toggle-node-view-btn" class="bg-purple-500 hover:bg-purple-600 px-3 py-2 rounded" onclick="toggleChatHistory()">Toggle Node View</button>
+    </div>
+    <!-- (Optional) Add branding or user info here -->
+</header>
 
-<!-- Draggable Separator -->
-<div id="separator" class="w-2 bg-gray-400 cursor-ew-resize"></div>
+<!-- Main Content Wrapper -->
+<div class="flex flex-1">
+    <!-- Sidebar for node details -->
+    <div id="sidebar" class="expanded bg-gray-800 text-white p-4 flex flex-col transition-all duration-300">
+        <h1 class="text-lg font-bold mb-4">Node-Prompt View</h1>
+        <ul id="node-view" class="flex-1 overflow-y-auto space-y-2">
+            <!-- Node details will be dynamically appended here -->
+        </ul>
+        <!-- (You can remove the old "New Report" button from here if needed) -->
+    </div>
 
-<!-- Main Chat Area -->
-<div class="flex-1 flex flex-col relative">
-    <!-- User Info & Dark Mode Toggle -->
-    <div class="absolute top-4 right-4 bg-white shadow-md p-2 rounded flex flex-col items-center space-y-2 user-info">
-        <div class="flex items-center space-x-2">
-            <img src="https://placehold.co/40" alt="User Avatar" class="w-10 h-10 rounded-full"/>
-            <span class="text-gray-700 font-semibold">Current User</span>
-            <button id="darkModeBtn" class="ml-4 bg-gray-700 text-white p-2 rounded" onclick="toggleDarkMode()">🌙
-            </button>
+    <!-- Draggable Separator -->
+    <div id="separator" class="w-2 bg-gray-400 cursor-ew-resize"></div>
+
+    <!-- Main Chat and DAG Area -->
+    <div class="flex-1 flex flex-col relative">
+        <!-- User Info & Dark Mode Toggle -->
+        <div class="absolute top-4 right-4 bg-white shadow-md p-2 rounded flex flex-col items-center space-y-2 user-info">
+            <div class="flex items-center space-x-2">
+                <img src="https://placehold.co/40" alt="User Avatar" class="w-10 h-10 rounded-full"/>
+                <span class="text-gray-700 font-semibold">Current User</span>
+                <button id="darkModeBtn" class="ml-4 bg-gray-700 text-white p-2 rounded" onclick="toggleDarkMode()">🌙</button>
+            </div>
+            <!-- Dropdown Menu for Prompt Set Selection -->
+            <select id="prompt-set-selector" class="p-2 border rounded bg-gray-100 shadow-md">
+                <option value="">Loading prompts...</option>
+            </select>
         </div>
-        <!-- Dropdown Menu for Prompt Set Selection -->
-        <select id="prompt-set-selector" class="p-2 border rounded bg-gray-100 shadow-md">
-            <option value="">Loading prompts...</option>
-        </select>
-    </div>
 
-    <button id="toggle-sidebar-btn"
-            class="absolute top-4 left-4 bg-gray-600 text-white px-3 py-2 rounded"
-            onclick="toggleChatHistory()">
-        📂 Toggle Chat History
-    </button>
+        <!-- Chat Messages Container -->
+        <div class="flex-1 p-4 overflow-y-auto" id="chat-container">
+            <!-- Chat messages will be dynamically appended here -->
+        </div>
 
-    <!-- Chat Messages Container -->
-    <div class="flex-1 p-4 overflow-y-auto" id="chat-container">
-        <!-- Chat messages will be dynamically appended here -->
-    </div>
+        <!-- Chat Input -->
+        <div id="chat-input-panel" class="p-4 bg-white border-t flex items-center justify-center absolute bottom-4 left-1/2 transform -translate-x-1/2 w-2/3 shadow-md rounded-lg">
+            <input id="chat-input" type="text" class="flex-1 border rounded p-2" placeholder="Type the company name..." onkeydown="handleKey(event)"/>
+            <button class="ml-2 bg-green-500 hover:bg-green-600 text-white p-2 rounded" onclick="initiateReport()">Send</button>
+            <button id="toggle-websearch-btn" class="ml-2 bg-purple-500 hover:bg-purple-600 text-white p-2 rounded" onclick="toggleWebSearch()">ON 🌐</button>
+        </div>
 
-    <!-- Chat Input -->
-    <div id="chat-input-panel"
-         class="p-4 bg-white border-t flex items-center justify-center absolute
-              bottom-1/2 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-2/3 shadow-md rounded-lg">
-        <input id="chat-input" type="text" class="flex-1 border rounded p-2" placeholder="Type the company name..."
-               onkeydown="handleKey(event)"/>
-        <button class="ml-2 bg-green-500 hover:bg-green-600 text-white p-2 rounded" onclick="initiateReport()">
-            Send
-        </button>
-        <!-- New Toggle Button for Web Search -->
-        <button id="toggle-websearch-btn" class="ml-2 bg-purple-500 hover:bg-purple-600 text-white p-2 rounded"
-                onclick="toggleWebSearch()">
-            ON 🌐
-        </button>
-    </div>
-
-    <!-- DAG Updates Container (initially hidden, shows the D3 graph) -->
-    <div id="dag-updates-container" class="hidden p-4">
-        <h2 class="text-xl font-bold mb-2">Report Progress</h2>
-        <svg id="dag-svg" width="1000" height="750" class="bg-white shadow-md rounded"></svg>
+        <!-- DAG Updates Container (initially hidden, shows the D3 graph) -->
+        <div id="dag-updates-container" class="hidden p-4">
+            <h2 class="text-xl font-bold mb-2">Report Progress</h2>
+            <svg id="dag-svg" width="1000" height="750" class="bg-white shadow-md rounded"></svg>
+        </div>
     </div>
 </div>
 
-<!-- Link to our JavaScript file (must be after the DOM elements) -->
+<!-- Link to our JavaScript file -->
 <script src="script.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </body>

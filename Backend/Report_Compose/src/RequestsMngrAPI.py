@@ -3,6 +3,7 @@ import uuid
 import time
 import logging
 import asyncio
+import json  # for JSON handling
 
 from fastapi import FastAPI, BackgroundTasks, HTTPException, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.gzip import GZipMiddleware
@@ -64,6 +65,123 @@ async def update_prompt(request: PromptUpdateRequest):
 # We'll store references to integrator objects or results by task_id
 active_tasks: Dict[str, Dict] = {}  # task_id -> { "integrator": Integrator, "status": ..., "report": ... }
 
+# Define the persistent volume path (mounted in Docker to "./Backend/Z_Req_data")
+STORAGE_DIR = "./Backend/Z_Req_data"
+
+# Ensure the storage directory exists
+os.makedirs(STORAGE_DIR, exist_ok=True)
+
+# Updated /save_task_result endpoint with metadata
+@app.post("/save_task_result/{task_id}")
+async def save_task_result(task_id: str):
+    """
+    Saves the final report result (DAG + node data) along with metadata:
+      - prompt set name
+      - focus prompt text
+      - processed_online flag
+      - saved_at timestamp
+    and saves the prompt set (YAML file) to disk.
+    """
+    # Verify the task exists
+    if task_id not in active_tasks:
+        raise HTTPException(status_code=404, detail="Task not found.")
+
+    task = active_tasks[task_id]
+
+    # Check if the task is completed; if not, return an error.
+    if task["status"] != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail="Task is still executing. Please wait until it completes before saving."
+        )
+
+    # Define filenames for the report and prompt set
+    report_file = os.path.join(STORAGE_DIR, f"{task_id}.json")
+    prompt_file = os.path.join(STORAGE_DIR, f"{task_id}_prompt.yaml")
+
+    # Build metadata
+    integrator = task["integrator"]
+    # Extract prompt set name from YAML file path (e.g., "MyPrompt" from "./Prompts/MyPrompt.yaml")
+    prompt_set = os.path.basename(integrator.yaml_file_path).replace(".yaml", "")
+    focus_message = integrator.focus_message
+    # Assume the integrator stores the online flag as an attribute; default to False if not present
+    processed_online = getattr(integrator, "web_search", False)
+    saved_at = time.strftime("%Y-%m-%d %H:%M:%S")
+    metadata = {
+        "prompt_set": prompt_set,
+        "focus_message": focus_message,
+        "processed_online": processed_online,
+        "saved_at": saved_at
+    }
+
+    # Combine final report and metadata into one JSON object
+    # Build metadata
+    integrator = task["integrator"]
+    # Combine final report, DAG, and metadata
+    # Instead of:
+    # "dag": integrator.results_dag.to_json()
+
+    # Convert the string into a dict before adding it to final_data:
+    dag_str = integrator.results_dag.to_json()  # This is likely a JSON string
+    dag_obj = json.loads(dag_str)  # Convert string -> Python dict
+
+    final_data = {
+        "report": task["report"],
+        "dag": dag_obj,  # Now an actual dict
+        "metadata": metadata
+    }
+
+    # Save the final report result with metadata
+    try:
+        with open(report_file, "w") as rf:
+            rf.write(json.dumps(final_data, indent=4))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving report: {e}")
+
+    # Save the prompt set that was used for this task.
+    try:
+        with open(integrator.yaml_file_path, "r") as pf:
+            prompt_content = pf.read()
+        with open(prompt_file, "w") as pf_out:
+            pf_out.write(prompt_content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving prompt set: {e}")
+
+    return {
+        "message": "Task result saved successfully.",
+        "report_file": report_file,
+        "prompt_file": prompt_file,
+        "metadata": metadata
+    }
+
+# Updated GET endpoint to load saved data along with metadata
+@app.get("/get_saved_task/{task_id}")
+async def get_saved_task(task_id: str):
+    """
+    Retrieves a saved task result including:
+      - The report and its metadata,
+      - The prompt set.
+    """
+    report_file = os.path.join(STORAGE_DIR, f"{task_id}.json")
+    prompt_file = os.path.join(STORAGE_DIR, f"{task_id}_prompt.yaml")
+
+    if not os.path.exists(report_file) or not os.path.exists(prompt_file):
+        raise HTTPException(status_code=404, detail="Saved task not found.")
+
+    try:
+        with open(report_file, "r") as rf:
+            report_data = json.load(rf)
+        with open(prompt_file, "r") as pf:
+            prompt_content = pf.read()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading saved files: {e}")
+
+    return {
+        "task_id": task_id,
+        "report_data": report_data,
+        "prompt_set": prompt_content
+    }
+
 # ----- Health Check Endpoint -----
 @app.get("/health")
 async def health_check():
@@ -71,7 +189,6 @@ async def health_check():
 
 # ----- Start Report Generation -----
 
-# Start Report Generation Endpoint
 # Data Model for requests
 class ReportRequest(BaseModel):
     company_name: str
@@ -79,7 +196,6 @@ class ReportRequest(BaseModel):
     prompt_name: str
     web_search: bool  # New toggle parameter
 
-# Start Report Generation Endpoint
 @app.post("/generate_report")
 async def generate_report(request: ReportRequest, background_tasks: BackgroundTasks):
     """
@@ -105,11 +221,9 @@ async def generate_report(request: ReportRequest, background_tasks: BackgroundTa
 
     return {"task_id": task_id, "status": "Processing started"}
 
-# Modified background task:
 async def run_report_task(task_id: str, company_name: str, mock: bool, web_search: bool):
     try:
         integrator = active_tasks[task_id]["integrator"]
-        # Pass the web_search parameter to the integrator
         final_report_json = await integrator.generate_report(company_name, mock=mock, web_search=web_search)
         active_tasks[task_id]["status"] = "completed"
         active_tasks[task_id]["report"] = final_report_json
@@ -130,12 +244,10 @@ async def websocket_task_updates(websocket: WebSocket, task_id: str):
         await websocket.close()
         return
 
-    # Get the integrator and thus the ResultsDAG and prompt_dag
     integrator = active_tasks[task_id]["integrator"]
     results_dag = integrator.results_dag
     dag = integrator.prompt_manager.prompt_dag
 
-    # Build a simple DAG representation:
     dag_data = {
         "nodes": [
             {
@@ -151,8 +263,6 @@ async def websocket_task_updates(websocket: WebSocket, task_id: str):
     }
 
     await websocket.accept()
-
-    # Send initial DAG structure message
     await websocket.send_json({"type": "init", "dag": dag_data})
 
     try:
