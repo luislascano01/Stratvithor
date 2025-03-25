@@ -82,3 +82,14 @@ html.dark-mode .bg-green-500 {
      ease-in-out makes it a smooth interpolation, but use what you prefer. */
   animation: breathing-color 4s ease-in-out infinite;
 }
+
+#dag-updates-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  background-color: inherit; /* or set a specific background if needed */
+  z-index: 10; /* Ensures it appears above the chat container */
+}
