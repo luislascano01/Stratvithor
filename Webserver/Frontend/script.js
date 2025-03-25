@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ----- Prompt Set Dropdown -----
     const promptSelector = document.getElementById('prompt-set-selector');
+
     async function loadPromptSets() {
         try {
             const response = await fetch("/reportComposerAPI/get_prompts");
@@ -101,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function () {
             promptSelector.innerHTML = "<option>Error loading prompts</option>";
         }
     }
+
     loadPromptSets();
 
     promptSelector.addEventListener('change', async function () {
@@ -110,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const updateResponse = await fetch("/reportComposerAPI/update_prompt", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ yaml_file_path: selectedPrompt }),
+                body: JSON.stringify({yaml_file_path: selectedPrompt}),
             });
             if (!updateResponse.ok) throw new Error("Failed to update prompt");
             console.log("Prompt updated to:", selectedPrompt);
@@ -283,7 +285,7 @@ function initGraph(dagData) {
 
     svg.call(d3.zoom()
         .scaleExtent([0.5, 3])
-        .on("zoom", function(event) {
+        .on("zoom", function (event) {
             g.attr("transform", event.transform);
         }));
 }
@@ -307,9 +309,9 @@ function autoCenterGraph() {
         .call(
             zoom.transform,
             d3.zoomIdentity
-                .translate(width / 5, height / 5)
+                .translate(width / 5 - 54, height / 5)
                 .scale(scale)
-                .translate(-centerX, -centerY)
+                .translate(-centerX-20, -centerY+7)
         );
 }
 
@@ -319,10 +321,12 @@ function dragstarted(event, d) {
     d.fx = d.x;
     d.fy = d.y;
 }
+
 function dragged(event, d) {
     d.fx = event.x;
     d.fy = event.y;
 }
+
 function dragended(event, d) {
     if (!event.active) simulation.alphaTarget(0);
     d.fx = null;
@@ -414,7 +418,7 @@ function displayNodeDetails(nodeId, details) {
         level = Math.max(level || 3, 3);
         return `<h${level}>${headingText}</h${level}>`;
     };
-    llmDiv.innerHTML = marked.parse(finalMarkdown, { renderer });
+    llmDiv.innerHTML = marked.parse(finalMarkdown, {renderer});
     // Online Data
     const onlineDataDiv = document.createElement("div");
     onlineDataDiv.className = "text-sm text-gray-300 whitespace-pre-wrap text-left";
@@ -562,3 +566,61 @@ document.addEventListener('DOMContentLoaded', function () {
     toggleMockButton.addEventListener('click', window.toggleMock);
 });
 
+// New function to generate the aggregated report view
+function showReportView() {
+    // First, hide other main views (chat and DAG)
+    document.getElementById('chat-container').classList.add('hidden');
+    document.getElementById('dag-updates-container').classList.add('hidden');
+    document.getElementById('chat-input-panel').classList.add('hidden');
+
+    // Show the report view container
+    const reportContainer = document.getElementById('report-view-container');
+    reportContainer.classList.remove('hidden');
+
+    // Build the aggregated content
+    let aggregatedHtml = '';
+    // Iterate through the global nodes array
+    nodes.forEach(node => {
+        const details = nodeDetails[node.id];
+        if (details) {
+            // Get the result object; if it's a JSON string, try to parse it
+            let resultObj = details.result;
+            if (typeof resultObj === "string") {
+                try {
+                    resultObj = JSON.parse(resultObj);
+                } catch (e) {
+                    console.warn("Result for node", node.id, "is not valid JSON. Using raw string.");
+                }
+            }
+            resultObj = resultObj || {};
+            // Use a section title (or a default)
+            const sectionTitle = resultObj.section_title || resultObj.section_tile || "Untitled Section";
+            // Get the LLM response content (assumed markdown)
+            let llmContent = resultObj.llm || "No LLM response found.";
+            if (typeof llmContent !== "string") {
+                llmContent = JSON.stringify(llmContent, null, 2);
+            }
+            // Append an H1 for the section title and a div for the parsed markdown content
+            aggregatedHtml += `<h1 class="text-2xl font-bold my-4">${sectionTitle}</h1>`;
+            aggregatedHtml += `<div class="whitespace-pre-wrap mb-4">${marked.parse(llmContent)}</div>`;
+        }
+    });
+
+    // Set the inner HTML of the report view container (keeping the header)
+    reportContainer.innerHTML = `<h2 class="text-xl font-bold mb-2">Aggregated Report</h2>` + aggregatedHtml;
+}
+
+function showDAGView() {
+    // Hide the aggregated report view
+    document.getElementById('report-view-container').classList.add('hidden');
+
+    // Show the DAG container and related panels
+    document.getElementById('dag-updates-container').classList.remove('hidden');
+    document.getElementById('chat-container').classList.remove('hidden');
+}
+
+
+function newReport() {
+    window.location.reload();
+
+}
