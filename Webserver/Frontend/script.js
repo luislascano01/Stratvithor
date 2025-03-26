@@ -18,35 +18,7 @@ window.currentTaskId = null;
 // --- loadPreviousReport ---
 // This function fetches a saved task, extracts the stored DAG (saved as "dag" in report_data),
 // and calls initGraph to reinitialize the D3 view.
-async function loadPreviousReport(taskId) {
-    try {
-        if (!taskId) {
-            alert("Please enter a Task ID.");
-            return;
-        }
-        const response = await fetch(`/reportComposerAPI/get_saved_task/${taskId}`);
-        if (!response.ok) {
-            throw new Error(`Task not found or an error occurred. (HTTP ${response.status})`);
-        }
-        const data = await response.json();
-        console.log("Loaded saved task data:", data);
-        const savedDAG = data.report_data && data.report_data.dag;
-        console.log("DAG portion of loaded data:", savedDAG);
-        if (!savedDAG) {
-            alert("No DAG structure found in the saved report.");
-            return;
-        }
-        document.getElementById('chat-input-panel').classList.add('hidden');
-        const dagContainer = document.getElementById('dag-updates-container');
-        dagContainer.classList.remove('hidden');
-        d3.select("#dag-svg").select("g").remove();
-        initGraph(savedDAG);
-        console.log("Previous report loaded successfully.");
-    } catch (err) {
-        console.error("Error loading previous report:", err);
-        alert("Error loading report: " + err.message);
-    }
-}
+
 
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -195,8 +167,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const taskIdInput = document.createElement("input");
             taskIdInput.id = "top-task-id-input";
             taskIdInput.type = "text";
+            taskIdInput.f
             taskIdInput.placeholder = "Enter Task ID...";
             taskIdInput.className = "border rounded p-2";
+            taskIdInput.style.color = "black";
             const topLoadSubmit = document.createElement("button");
             topLoadSubmit.innerText = "Load";
             topLoadSubmit.className = "bg-green-500 hover:bg-green-600 text-white p-2 rounded";
@@ -227,73 +201,6 @@ document.addEventListener('DOMContentLoaded', function () {
 // =============================
 
 // --- initGraph and D3 Helpers ---
-function initGraph(dagData) {
-    console.log("initGraph called with DAG data:", dagData);
-    nodes = dagData.nodes;
-    links = dagData.links;
-    // Clear previous graph elements
-    g.selectAll("*").remove();
-
-    simulation = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d => d.id).distance(120))
-        .force("charge", d3.forceManyBody().strength(-300))
-        .force("center", d3.forceCenter(0, 0))
-        .force("collide", d3.forceCollide().radius(30));
-
-    linkSelection = g.append("g")
-        .attr("class", "links")
-        .selectAll("line")
-        .data(links)
-        .enter().append("line")
-        .attr("stroke", "#999")
-        .attr("stroke-width", 2);
-
-    nodeSelection = g.append("g")
-        .attr("class", "nodes")
-        .selectAll("circle")
-        .data(nodes)
-        .enter().append("circle")
-        .attr("r", 20)
-        .attr("fill", "#ccc")
-        .attr("stroke", "#333")
-        .attr("stroke-width", 1.5)
-        .on("click", (event, d) => {
-            const details = nodeDetails[d.id];
-            if (details) displayNodeDetails(d.id, details);
-        })
-        .each(function (d) {
-            // Append a <title> element to each node for the tooltip.
-            d3.select(this).append("title").text("No Title");
-        });
-
-    nodeSelection.call(d3.drag()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended));
-
-    simulation.on("tick", () => {
-        linkSelection
-            .attr("x1", d => d.source.x)
-            .attr("y1", d => d.source.y)
-            .attr("x2", d => d.target.x)
-            .attr("y2", d => d.target.y);
-        nodeSelection
-            .attr("cx", d => d.x)
-            .attr("cy", d => d.y);
-    });
-
-    simulation.on("end", () => {
-        console.log("Graph simulation stabilized. Auto-centering...");
-        autoCenterGraph();
-    });
-
-    svg.call(d3.zoom()
-        .scaleExtent([0.5, 3])
-        .on("zoom", function (event) {
-            g.attr("transform", event.transform);
-        }));
-}
-
 function autoCenterGraph() {
     if (!nodes.length) return;
     const minX = d3.min(nodes, d => d.x);
@@ -351,59 +258,6 @@ function openWebSocketForTask(taskId) {
     };
     ws.onclose = () => console.log("WebSocket closed for task:", taskId);
     ws.onerror = err => console.error("WebSocket error:", err);
-}
-
-function updateNodeStatus(nodeId, status, result) {
-    const node = nodes.find(n => n.id == nodeId);
-    if (!node) return;
-    let newColor = "#ccc";
-    if (status === "processing") {
-        newColor = "#FFD700";
-        svg.selectAll("circle")
-            .filter(d => d.id == nodeId)
-            .classed("breathing", true);
-    } else if (status === "complete") {
-        newColor = "#32CD32";
-        svg.selectAll("circle")
-            .filter(d => d.id == nodeId)
-            .classed("breathing", false);
-    } else if (status === "failed") {
-        newColor = "#FF4500";
-        svg.selectAll("circle")
-            .filter(d => d.id == nodeId)
-            .classed("breathing", false);
-    }
-    svg.selectAll("circle")
-        .filter(d => d.id == nodeId)
-        .transition().duration(500)
-        .attr("fill", newColor);
-
-    // Update the tooltip using the "result" parameter
-    svg.selectAll("circle")
-        .filter(d => d.id == nodeId)
-        .each(function (d) {
-            const sel = d3.select(this);
-            // Parse result if it's a string, otherwise use it as an object
-            let resultObj = {};
-            if (typeof result === "string") {
-                try {
-                    resultObj = JSON.parse(result);
-                } catch (e) {
-                    resultObj = {};
-                }
-            } else if (result) {
-                resultObj = result;
-            }
-            // Extract the section title from resultObj
-            const tooltipText = resultObj.section_title || resultObj.section_tile || "No Title";
-            // Update existing <title> element or append if missing
-            let titleEl = sel.select("title");
-            if (!titleEl.empty()) {
-                titleEl.text(tooltipText);
-            } else {
-                sel.append("title").text(tooltipText);
-            }
-        });
 }
 
 // --- Node Details Display ---
@@ -755,4 +609,211 @@ function hideDownloadUI() {
     if (downloadUI) {
         downloadUI.remove();
     }
+}
+
+async function loadPreviousReport(taskId) {
+    console.log("loadPreviousReport called with taskId:", taskId);
+    try {
+        if (!taskId) {
+            alert("Please enter a Task ID.");
+            return;
+        }
+        const response = await fetch(`/reportComposerAPI/get_saved_task/${taskId}`);
+        console.log("Response status:", response.status);
+        if (!response.ok) {
+            throw new Error(`Task not found or an error occurred. (HTTP ${response.status})`);
+        }
+        const data = await response.json();
+        console.log("Loaded saved task data:", data);
+
+        // 1) Extract the `graph` object your backend saves:
+        const savedGraph = data.report_data && data.report_data.graph;
+        console.log("Extracted savedGraph:", savedGraph);
+
+        // 2) Check if `savedGraph` actually exists
+        if (!savedGraph) {
+            alert("No DAG structure found in the saved report.");
+            return;
+        }
+
+        // 3) Set the current task ID
+        window.currentTaskId = taskId;
+        console.log("Set currentTaskId:", window.currentTaskId);
+        document.getElementById('chat-input-panel').classList.add('hidden');
+        const dagContainer = document.getElementById('dag-updates-container');
+        dagContainer.classList.remove('hidden');
+
+        // 4) Remove old DAG from <svg>
+        console.log("Removing old DAG from svg...");
+        d3.select("#dag-svg").select("g").remove();
+
+        // 5) Initialize the DAG visually (only call once!)
+        console.log("Initializing graph with savedGraph...");
+        initGraph(savedGraph);
+
+        // 6) Extract the final DAG node statuses/results from report_data.dag
+        const savedDAG = data.report_data && data.report_data.dag;
+        console.log("Extracted savedDAG:", savedDAG);
+
+        if (savedDAG) {
+            console.log("Populating nodeDetails from savedDAG");
+            // Populate nodeDetails so each node has a status and result
+            Object.keys(savedDAG).forEach(nodeId => {
+                const nodeData = savedDAG[nodeId];
+                console.log(`Node ${nodeId}:`, nodeData);
+                nodeDetails[nodeId] = {
+                    status: nodeData.status,
+                    result: nodeData.result
+                };
+            });
+
+            // 7) Update node colors and tooltips based on final statuses
+            console.log("Updating node statuses based on nodeDetails...");
+            nodes.forEach(n => {
+                const details = nodeDetails[n.id];
+                console.log(`Updating node ${n.id} with details:`, details);
+                if (details) {
+                    updateNodeStatus(n.id, details.status, details.result);
+                }
+            });
+        }
+
+        // 8) Reopen the WebSocket connection if needed
+        console.log("Reopening WebSocket connection for taskId:", taskId);
+        openWebSocketForTask(taskId);
+
+        console.log("Previous report loaded and session reinitialized successfully.");
+    } catch (err) {
+        console.error("Error loading previous report:", err);
+        alert("Error loading report: " + err.message);
+    }
+}
+
+function initGraph(dagData) {
+    console.log("initGraph called with DAG data:", dagData);
+    nodes = dagData.nodes;
+    links = dagData.links;
+    console.log("Nodes:", nodes, "Links:", links);
+    // Clear previous graph elements
+    g.selectAll("*").remove();
+
+    simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(120))
+        .force("charge", d3.forceManyBody().strength(-300))
+        .force("center", d3.forceCenter(0, 0))
+        .force("collide", d3.forceCollide().radius(30));
+
+    linkSelection = g.append("g")
+        .attr("class", "links")
+        .selectAll("line")
+        .data(links)
+        .enter().append("line")
+        .attr("stroke", "#999")
+        .attr("stroke-width", 2);
+
+    nodeSelection = g.append("g")
+        .attr("class", "nodes")
+        .selectAll("circle")
+        .data(nodes)
+        .enter().append("circle")
+        .attr("r", 20)
+        .attr("fill", "#ccc")
+        .attr("stroke", "#333")
+        .attr("stroke-width", 1.5)
+        .on("click", (event, d) => {
+            console.log("Node clicked:", d);
+            const details = nodeDetails[d.id];
+            if (details) displayNodeDetails(d.id, details);
+        })
+        .each(function (d) {
+            // Append a <title> element to each node for the tooltip.
+            d3.select(this).append("title").text("No Title");
+        });
+
+    nodeSelection.call(d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended));
+
+    simulation.on("tick", () => {
+        linkSelection
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
+        nodeSelection
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y);
+    });
+
+    simulation.on("end", () => {
+        console.log("Graph simulation stabilized. Auto-centering...");
+        autoCenterGraph();
+    });
+
+    svg.call(d3.zoom()
+        .scaleExtent([0.5, 3])
+        .on("zoom", function (event) {
+            g.attr("transform", event.transform);
+        }));
+
+    console.log("initGraph complete.");
+}
+
+function updateNodeStatus(nodeId, status, result) {
+    console.log(`updateNodeStatus called for node ${nodeId} with status: ${status}`);
+    const node = nodes.find(n => n.id == nodeId);
+    if (!node) {
+        console.log(`Node ${nodeId} not found in nodes array.`);
+        return;
+    }
+    let newColor = "#ccc";
+    if (status === "processing") {
+        newColor = "#FFD700";
+        svg.selectAll("circle")
+            .filter(d => d.id == nodeId)
+            .classed("breathing", true);
+    } else if (status === "complete") {
+        newColor = "#32CD32";
+        svg.selectAll("circle")
+            .filter(d => d.id == nodeId)
+            .classed("breathing", false);
+    } else if (status === "failed") {
+        newColor = "#FF4500";
+        svg.selectAll("circle")
+            .filter(d => d.id == nodeId)
+            .classed("breathing", false);
+    }
+    svg.selectAll("circle")
+        .filter(d => d.id == nodeId)
+        .transition().duration(500)
+        .attr("fill", newColor)
+        .on("end", () => {
+            console.log(`Node ${nodeId} color updated to ${newColor}`);
+        });
+
+    // Update the tooltip using the "result" parameter
+    svg.selectAll("circle")
+        .filter(d => d.id == nodeId)
+        .each(function (d) {
+            const sel = d3.select(this);
+            let resultObj = {};
+            if (typeof result === "string") {
+                try {
+                    resultObj = JSON.parse(result);
+                } catch (e) {
+                    resultObj = {};
+                }
+            } else if (result) {
+                resultObj = result;
+            }
+            const tooltipText = resultObj.section_title || resultObj.section_tile || "No Title";
+            let titleEl = sel.select("title");
+            if (!titleEl.empty()) {
+                titleEl.text(tooltipText);
+            } else {
+                sel.append("title").text(tooltipText);
+            }
+            console.log(`Node ${nodeId} tooltip updated to:`, tooltipText);
+        });
 }

@@ -2,8 +2,11 @@ import asyncio
 import json
 import logging
 import os
+import pickle
 import random
 import tempfile
+import subprocess
+
 from typing import Dict
 from xml.etree.ElementTree import indent
 
@@ -94,6 +97,22 @@ class Integrator:
         self.openAI_API_key = load_openai_api_key("./Credentials/Credentials.yaml")
         self.focus_message = "Default Focus Message"
         self.web_search = True
+
+        # At the end of the __init__ method of the Integrator class, add the following method:
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        if 'tasks' in state:
+            logging.info("Removing 'tasks' attribute from Integrator state for pickling")
+            del state['tasks']
+        # Log the picklability of each attribute
+        for key, value in state.items():
+            try:
+                pickle.dumps(value)
+                logging.info("Attribute '%s' is pickleable", key)
+            except Exception as ex:
+                logging.error("Attribute '%s' is NOT pickleable: %s", key, ex)
+        return state
 
     async def get_search_api_url(self):
         # List candidate base URLs in order of preference.
@@ -374,30 +393,33 @@ class Integrator:
 
     def generate_pdf_report(self) -> str:
         """
-        Generates a PDF report using the final DAG results by first creating a DOCX report
-        and then converting it to PDF.
+        Generates a PDF report using the final DAG results by first creating a DOCX report,
+        then converting it to PDF using LibreOffice in headless mode.
         Returns the temporary file path of the generated PDF.
         """
         # First, generate the DOCX report.
         docx_path = self.generate_docx_report()
 
-        # Now, convert the DOCX to PDF.
-        # For this example, we use the docx2pdf package.
-        # Ensure that docx2pdf is installed: pip install docx2pdf
+        # Create a temporary directory for the PDF output.
+        output_dir = tempfile.mkdtemp()
+
+        # Construct the LibreOffice command to convert DOCX to PDF.
+        command = [
+            "libreoffice",
+            "--headless",
+            "--convert-to", "pdf",
+            docx_path,
+            "--outdir", output_dir
+        ]
+
         try:
-            from docx2pdf import convert
-        except ImportError:
-            raise Exception("docx2pdf module is required for PDF conversion. Please install it.")
+            subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except subprocess.CalledProcessError as e:
+            raise Exception(f"Error converting DOCX to PDF: {e.stderr.decode('utf-8')}")
 
-        # Create a temporary PDF file path.
-        pdf_tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-        pdf_tmp_file.close()  # We'll let docx2pdf write to this file.
+        # The converted file will have the same basename as the DOCX but with .pdf extension.
+        pdf_file = os.path.join(output_dir, os.path.basename(docx_path).replace(".docx", ".pdf"))
+        if not os.path.exists(pdf_file):
+            raise Exception("PDF conversion failed; output file not found.")
 
-        # Convert DOCX to PDF.
-        # docx2pdf.convert expects the input path and output path (or folder).
-        try:
-            convert(docx_path, pdf_tmp_file.name)
-        except Exception as e:
-            raise Exception(f"Error converting DOCX to PDF: {e}")
-
-        return pdf_tmp_file.name
+        return pdf_file

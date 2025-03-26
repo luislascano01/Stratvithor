@@ -19,6 +19,18 @@ class ResultsDAG:
         # An async queue of updates (node_id, node_data)
         self._updates_queue: asyncio.Queue[Tuple[int, Dict[str, Any]]] = asyncio.Queue()
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # Remove the _updates_queue since it's not pickleable.
+        if '_updates_queue' in state:
+            del state['_updates_queue']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # Reinitialize _updates_queue after unpickling.
+        self._updates_queue = asyncio.Queue()
+
     def init_node(self, node_id: int) -> None:
         """
         Mark a node as 'pending' with no result. Typically called
@@ -26,10 +38,9 @@ class ResultsDAG:
         """
         self.results[node_id] = {"status": "pending", "result": None}
 
-    def  store_result(self, node_id: int, result: Any) -> None:
+    def store_result(self, node_id: int, result: Any) -> None:
         """
-        Mar
-        k a node as 'complete' with the given result,
+        Mark a node as 'complete' with the given result,
         then push an update event to our queue.
         """
         self.results[node_id] = {"status": "complete", "result": result}

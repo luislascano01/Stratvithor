@@ -1,4 +1,5 @@
 import os
+import pickle
 import uuid
 import time
 import logging
@@ -37,10 +38,13 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 # Hardcoded list of available download formats.
 AVAILABLE_DOWNLOAD_FORMATS = ["docx", "pdf"]
 
+
 class PromptUpdateRequest(BaseModel):
     yaml_file_path: str
 
+
 global map_name_to_file
+
 
 @app.get("/get_prompts")
 async def get_prompts():
@@ -58,6 +62,7 @@ async def get_prompts():
         return list(map_name_to_file.keys())  # Return clean names for frontend
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/update_prompt")
 async def update_prompt(request: PromptUpdateRequest):
@@ -88,9 +93,11 @@ async def save_task_result(task_id: str):
       - saved_at timestamp
     and saves the prompt set (YAML file) to disk.
     """
+    logging.info('save_task_result endpoint called with task_id: %s', task_id)
     # Verify the task exists
     if task_id not in active_tasks:
         raise HTTPException(status_code=404, detail="Task not found.")
+    logging.info('Task %s found in active_tasks', task_id)
 
     task = active_tasks[task_id]
 
@@ -100,6 +107,7 @@ async def save_task_result(task_id: str):
             status_code=400,
             detail="Task is still executing. Please wait until it completes before saving."
         )
+    logging.info('Task %s is completed. Proceeding to save report and prompt set.', task_id)
 
     # Define filenames for the report and prompt set
     report_file = os.path.join(STORAGE_DIR, f"{task_id}.json")
@@ -124,46 +132,83 @@ async def save_task_result(task_id: str):
     dag_str = integrator.results_dag.to_json()  # This is likely a JSON string
     dag_obj = json.loads(dag_str)  # Convert string -> Python dict
 
+    dag_graph = {
+        "nodes": [
+            {
+                "id": node_id,
+                "label": integrator.prompt_manager.get_prompt_by_id(node_id)["section_title"]
+            }
+            for node_id in integrator.prompt_manager.prompt_dag.nodes()
+        ],
+        "links": [
+            {"source": s, "target": t}
+            for s, t in integrator.prompt_manager.prompt_dag.edges()
+        ]
+    }
+
     final_data = {
         "report": task["report"],
-        "dag": dag_obj,  # Now an actual dict
+        "dag": dag_obj,  # This is the dictionary of node => {status, result}
+        "graph": dag_graph,  # The shape your front end needs for initGraph()
         "metadata": metadata
     }
 
     # Save the final report result with metadata
+    logging.info('Saving final report to %s', report_file)
     try:
         with open(report_file, "w") as rf:
             rf.write(json.dumps(final_data, indent=4))
+            logging.info('Final report successfully saved to %s', report_file)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error saving report: {e}")
 
     # Save the prompt set that was used for this task.
+    logging.info('Saving prompt set from %s to %s', integrator.yaml_file_path, prompt_file)
     try:
         with open(integrator.yaml_file_path, "r") as pf:
             prompt_content = pf.read()
         with open(prompt_file, "w") as pf_out:
             pf_out.write(prompt_content)
+            logging.info('Prompt set successfully saved to %s', prompt_file)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error saving prompt set: {e}")
 
+    # ... (existing code that saves report_file and prompt_file)
+
+    # Save the Integrator object using pickle
+    integrator_file = os.path.join(STORAGE_DIR, f"{task_id}_integrator.pkl")
+    logging.info('Saving Integrator object to %s', integrator_file)
+    try:
+        with open(integrator_file, "wb") as f:
+            pickle.dump(integrator, f)
+            logging.info('Integrator object successfully saved to %s', integrator_file)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving Integrator object: {e}")
+
+    logging.info('Task result saved successfully for task_id: %s', task_id)
     return {
         "message": "Task result saved successfully.",
         "report_file": report_file,
         "prompt_file": prompt_file,
         "metadata": metadata
+        # Optionally, you can also include the path of the integrator file if needed:
+        # "integrator_file": integrator_file
     }
 
 
 # Updated GET endpoint to load saved data along with metadata
+
 @app.get("/get_saved_task/{task_id}")
 async def get_saved_task(task_id: str):
     """
     Retrieves a saved task result including:
       - The report and its metadata,
       - The prompt set.
+    Also, loads the saved Integrator object to reinitialize the session.
     """
     report_file = os.path.join(STORAGE_DIR, f"{task_id}.json")
     prompt_file = os.path.join(STORAGE_DIR, f"{task_id}_prompt.yaml")
+    integrator_file = os.path.join(STORAGE_DIR, f"{task_id}_integrator.pkl")
 
     if not os.path.exists(report_file) or not os.path.exists(prompt_file):
         raise HTTPException(status_code=404, detail="Saved task not found.")
@@ -175,6 +220,23 @@ async def get_saved_task(task_id: str):
             prompt_content = pf.read()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading saved files: {e}")
+
+    # Attempt to load the pickled Integrator object.
+    if os.path.exists(integrator_file):
+        try:
+            with open(integrator_file, "rb") as f:
+                integrator = pickle.load(f)
+            # Reinitialize the active task session with the loaded integrator.
+            active_tasks[task_id] = {
+                "integrator": integrator,
+                "status": "completed",
+                "report": report_data.get("report")
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error loading Integrator object: {e}")
+    else:
+        # Optionally, you could choose to notify that no integrator was saved.
+        raise HTTPException(status_code=404, detail="Saved Integrator object not found.")
 
     return {
         "task_id": task_id,
@@ -339,4 +401,5 @@ async def download_report(task_id: str, file_type: str = "docx"):
 # ----------------------------------------------------------------------
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("RequestsMngrAPI:app", host="0.0.0.0", port=8181, reload=True)
