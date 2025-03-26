@@ -149,7 +149,38 @@ class Integrator:
 
         molder = DataMolder("gpt-4o", self.openAI_API_key)
         ancestor_messages = self.get_ancestor_chat_hist(node_id)
-        response = await molder.process_data(online_data, ancestor_messages, focus_message)
+        molded_tup = await molder.process_data(online_data, ancestor_messages, focus_message)
+        response = molded_tup["llm_response"]
+        llm_found_online_data = molded_tup["web_references"]
+
+        # Parse the newline-separated web references and create dictionary entries.
+        if "results" in online_data and isinstance(online_data["results"], list):
+            new_refs = []
+            for line in llm_found_online_data.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                # Each line is expected to be in the format "Title: URL"
+                parts = line.split(":", 1)
+                if len(parts) == 2:
+                    title = parts[0].strip()
+                    url = parts[1].strip()
+                else:
+                    title = line
+                    url = ""
+                # Create a dictionary in the same format as online_data items.
+                ref_dict = {
+                    "url": url,
+                    "display_url": url,  # For simplicity, using the full URL.
+                    "snippet": "",
+                    "title": title,
+                    "scrapped_text": "",
+                    "extension": "html"
+                }
+                new_refs.append(ref_dict)
+            # Prepend the new web reference entries to the existing results.
+            online_data["results"] = new_refs + online_data["results"]
+
         return response, online_data
 
     def get_ancestor_chat_hist(self, node_id: int) -> list[Dict[str, any]]:

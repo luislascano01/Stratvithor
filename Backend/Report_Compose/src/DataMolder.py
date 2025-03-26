@@ -1,17 +1,18 @@
 import logging
-
 import aiohttp
 import asyncio
 import json
-import openai
-from typing import Any, Dict, Optional, List
+from openai import OpenAI
 
+
+from typing import Any, Dict, Optional, List
 
 class DataMolder:
     """
-
-	@@ -10,51 +11,188 @@ class DataMolder:
     The microservice (which may be LLM-powered) returns a refined result in JSON format.
+    Now process_data returns a dictionary with two entries:
+      - "llm_response": The text response from the model.
+      - "web_references": A string containing any web reference URLs extracted from annotations.
     """
 
     def __init__(self, model: str, service_api_key: str, text_processing_url="DEFAULT"):
@@ -24,24 +25,32 @@ class DataMolder:
         self.text_processing_url = text_processing_url
         self.model_name = model
         self.openai_api_key = service_api_key
+        self.client = OpenAI(api_key=self.openai_api_key)
 
     async def process_data(
-            self,
-            online_data: Dict[str, Any],
-            ancestor_messages: List[Dict[str, Any]] = None,
-            custom_topic_focuser: Optional[str] = ""
-    ) -> str:
+        self,
+        online_data: Dict[str, Any],
+        ancestor_messages: List[Dict[str, Any]] = None,
+        custom_topic_focuser: Optional[str] = ""
+    ) -> Dict[str, str]:
         """
         Processes the raw data by combining it with parent context and custom topic focuser,
-        then sends it to the text processing microservice (or OpenAI) for refinement.
-        If the API call fails due to input length, it will reduce the largest scrapped_text in online_data by half and retry.
+        then sends it to OpenAI for refinement.
+
+        Returns a dictionary with:
+          - "llm_response": the response text from the model.
+          - "web_references": any references (URLs) provided in the annotations (if applicable).
+
+        If the API call fails due to input length, it will reduce the largest scrapped_text
+        in online_data by half and retry.
         """
         if ancestor_messages is None:
             ancestor_messages = []
 
+        # A system message plus an initial user message referencing custom_topic_focuser.
         molder_messages = [{
             "entity": "system",
-            'text': (
+            "text": (
                 "You are an assistant with the responsibility of answering the user prompts. "
                 "The user sometimes will provide online data to answer these prompts in the "
                 "most up-to-date way. However, if no online data is provided, then you must "
@@ -49,96 +58,114 @@ class DataMolder:
                 "Please provide your response in markdown style, with correct citation "
                 "of the online data sources. If the online data is empty, ignore it "
                 "and do not think of its existence. "
-                "Attempt to provide your most accurate response.\n"+
-                "For every response, use "
-                "markdown format, however, do not start your response with a markdown header, but instead "
-                "give a plain text intro when starting your response. Do not re-state the question. The intro should start"
+                "Attempt to provide your most accurate response.\n"
+                "For every response, use markdown format, however, do not start your response with a markdown header, but instead "
+                "give a plain text intro when starting your response. Do not re-state the question. The intro should start "
                 "answering right away. Follow the markdown format appropriately."
+                "Your response should be an entire essay providing in-depth analysis. Please provide long response"
             )
-        }, {"entity": "user", "text": f'The company we will be building the report on today is {custom_topic_focuser}'}]
+        }, {
+            "entity": "user",
+            "text": f"The company we will be building the report on today is {custom_topic_focuser}"
+        }]
+
         ancestor_messages = molder_messages + ancestor_messages
 
         print("DEBUG ancestor_messages for node:", json.dumps(ancestor_messages, indent=2))
 
-        # 1) Convert `ancestor_messages` into GPT-4o–style chat structure
+        # Convert ancestor_messages into a ChatCompletion-style list.
         role_map = {
-            "system": "developer",  # system => "developer"
-            "user": "user",  # user => "user"
-            "llm": "assistant"  # LLM => "assistant"
+            "system": "system",       # You can also map 'system' to 'system'
+            "developer": "system",    # If you want to treat 'developer' as system
+            "user": "user",
+            "llm": "assistant"
         }
 
-        gpt4o_messages = []
+        chat_messages = []
         for msg in ancestor_messages:
             entity = msg.get("entity", "user")
             text = msg.get("text", "")
+            # If the original code used "system" => "developer", revert if needed:
+            # But typically: system => "system", user => "user", llm => "assistant"
             role = role_map.get(entity, "user")
-            gpt4o_messages.append({
-                "role": role,
-                "content": [
-                    {
-                        "type": "text",
-                        "text": text
-                    }
-                ]
-            })
+            chat_messages.append({"role": role, "content": text})
 
-        # 2) Optionally incorporate online_data as a "developer" message with JSON payload.
-        # online_data is assumed to be a dictionary with one key "results".
+        # Optionally incorporate online_data as an extra system/developer message.
         if online_data:
             data_str = json.dumps(online_data, indent=2)
-            gpt4o_messages.append({
-                "role": "developer",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": ("##########\nONLINE_DATA\n----------\n" +
-                                 data_str +
-                                 "\n----------\nEnd of ONLINE_DATA\n##########\n")
-                    }
-                ]
+            chat_messages.append({
+                "role": "system",
+                "content": (
+                    "##########\nONLINE_DATA\n----------\n" +
+                    data_str +
+                    "\n----------\nEnd of ONLINE_DATA\n##########\n"
+                )
             })
 
-        # 3) If there's a custom topic focuser, add it as a final user message.
-        if custom_topic_focuser:
-            gpt4o_messages.append({
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": f"We are talking about: {custom_topic_focuser}"
-                    }
-                ]
-            })
+        # If there's a custom topic focuser, add it as a final user message (already added above).
+        # Possibly omit if you do not need it repeated.
 
-        # 4) Retry loop: if the API call fails because the input is too long,
-        #    cut the largest scrapped_text in online_data["results"] in half and retry.
+        # Set openai.api_key
+
+        # Retry loop for potential token-length errors
         max_retries = 5
         attempt = 0
         last_exception = None
+
         while attempt < max_retries:
             try:
-                client = openai.OpenAI(api_key=self.openai_api_key)
+                # Use the new ChatCompletion API
                 if self.model_name in ["gpt-4o", "gpt-3.5-turbo"]:
                     response = await asyncio.to_thread(
-                        lambda: client.chat.completions.create(
-                            model=self.model_name,
-                            messages=gpt4o_messages,
-                        )
+                        lambda: self.client.chat.completions.create(model=self.model_name,
+                        messages=chat_messages)
                     )
                     output_text = response.choices[0].message.content
-                    return output_text  # Success, return the answer.
+                    return {
+                        "llm_response": output_text,
+                        "web_references": ""
+                    }
+
+                elif self.model_name == "gpt-4o-search-preview":
+                    # For search-preview, add web_search_options={}
+                    response = await asyncio.to_thread(
+                        lambda: self.client.chat.completions.create(model=self.model_name,
+                        messages=chat_messages,
+                        web_search_options={})
+                    )
+                    message = response.choices[0].message
+                    llm_response = message.content
+
+                    annotations = getattr(message, "annotations", [])
+                    references = []
+                    for annotation in annotations:
+                        if getattr(annotation, "type", None) == "url_citation":
+                            url_citation = getattr(annotation, "url_citation", None)
+                            if url_citation:
+                                title = getattr(url_citation, "title", "No Title")
+                                url = getattr(url_citation, "url", "No URL")
+                                references.append(f"{title}: {url}")
+
+                    web_references = "\n".join(references)
+                    return {
+                        "llm_response": llm_response,
+                        "web_references": web_references
+                    }
+
                 else:
-                    raise Exception("Unsupported model")
+                    raise Exception("Unsupported model name provided.")
+
             except Exception as e:
                 last_exception = e
                 error_message = str(e)
                 logging.info(f"Attempt {attempt + 1} failed: {error_message}")
-                # Check if error message indicates token length issues.
-                if "Token indices sequence length" in error_message or "exceeds maximum" in error_message:
-                    # Check if online_data has a "results" key with a non-empty list.
+
+                # Check if it's a token-length issue => reduce largest scrapped_text
+                if ("Token indices sequence length" in error_message or
+                        "exceeds maximum" in error_message):
                     results = online_data.get("results")
                     if results and isinstance(results, list):
-                        # Find the result with the longest scrapped_text.
+                        # Find the largest scrapped_text
                         longest_idx = None
                         max_len = 0
                         for idx, result in enumerate(results):
@@ -151,88 +178,87 @@ class DataMolder:
                             new_text = old_text[: len(old_text) // 2]
                             results[longest_idx]["scrapped_text"] = new_text
                             logging.info(
-                                f"Reduced scrapped_text length of result {longest_idx} from {max_len} to {len(new_text)}")
-                            # Rebuild the online_data message.
+                                f"Reduced scrapped_text length of result {longest_idx} "
+                                f"from {max_len} to {len(new_text)}"
+                            )
                             data_str = json.dumps(online_data, indent=2)
-                            # Remove the last developer message (online_data) and add an updated one.
-                            if gpt4o_messages and gpt4o_messages[-1]["role"] == "developer":
-                                gpt4o_messages.pop()
-                            gpt4o_messages.append({
-                                "role": "developer",
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": ("##########\nONLINE_DATA\n----------\n" +
-                                                 data_str +
-                                                 "\n----------\nEnd of ONLINE_DATA\n##########\n")
-                                    }
-                                ]
+                            # Update the system message with the truncated data
+                            # Remove the last system message if it's the ONLINE_DATA
+                            if chat_messages and chat_messages[-1]["content"].startswith("##########\nONLINE_DATA"):
+                                chat_messages.pop()
+                            chat_messages.append({
+                                "role": "system",
+                                "content": (
+                                    "##########\nONLINE_DATA\n----------\n" +
+                                    data_str +
+                                    "\n----------\nEnd of ONLINE_DATA\n##########\n"
+                                )
                             })
-                            # Now retry the API call.
                             attempt += 1
                             continue
-                # If not a token-length issue or no online data to reduce, then break.
+
+                # If not a token-length issue or we cannot reduce further, break out
                 break
-        # If all attempts fail, raise the last exception.
-        raise Exception(f"DataMolder process_data failed after {attempt} attempts: {last_exception}")
 
+        # If all attempts failed, raise the last exception
+        raise Exception(
+            f"DataMolder process_data failed after {attempt} attempts: {last_exception}"
+        )
 
+# ------------------------------------------
+# Example usage script (main):
+# ------------------------------------------
 if __name__ == "__main__":
     import asyncio
     import json
-    from Backend.Report_Compose.src.Integrator import load_openai_api_key  # Adjust the import as needed
-
+    from Backend.Report_Compose.src.Integrator import load_openai_api_key
 
     async def main():
-        # 1. Load your API key from credentials YAML.
+        # 1) Load your API key from credentials YAML (ensure the file path is correct)
         openai_api_key = load_openai_api_key("./Credentials/Credentials.yaml")
 
-        # 2. Instantiate the DataMolder with model "gpt-4o"
-        data_molder = DataMolder(model="gpt-4o", service_api_key=openai_api_key)
+        # 2) Instantiate the DataMolder with model "gpt-4o-search-preview"
+        data_molder = DataMolder(model="gpt-4o-search-preview", service_api_key=openai_api_key)
 
-        # 3. Create believable online data for a new tech product.
+        # 3) Create example online data for the Meta Quest VR headset
         online_data = {
             "articles": [
                 {
-                    "title": "TechCorp Unveils Its Latest Smartphone",
+                    "title": "Meta Unveils Next Generation Meta Quest VR Headset",
                     "content": (
-                        "TechCorp has released a new smartphone featuring a cutting-edge foldable display, "
-                        "an advanced AI-driven camera system, and extended battery life. Early reviews praise "
-                        "its innovative design while noting the high price point."
+                        "Meta has introduced the new Meta Quest VR headset featuring improved resolution, advanced tracking, "
+                        "and enhanced comfort. The new design promises a more immersive experience that could redefine home VR entertainment."
                     )
                 },
                 {
-                    "title": "Consumers Weigh In on TechCorp's New Phone",
+                    "title": "Consumer Reactions to the Meta Quest Launch",
                     "content": (
-                        "Social media and tech blogs are abuzz with reactions to TechCorp's latest release. "
-                        "Many users commend the device’s unique design and performance, although some remain "
-                        "cautious about its premium pricing."
+                        "Early reviews and social media buzz indicate strong interest in Meta's new VR headset. While users praise "
+                        "its innovative features and immersive performance, there are mixed opinions regarding its pricing and overall market positioning."
                     )
                 }
             ],
             "statistics": {
-                "preorder_count": 5000,
-                "social_media_mentions": 12000,
-                "average_rating": 4.5
+                "preorder_count": 4000,
+                "social_media_mentions": 20000,
+                "average_rating": 4.7
             }
         }
 
-        # 4. Build a longer, more detailed mock chat history.
+        # 4) Build a mock chat history focused on the Meta Quest topic
         ancestor_messages = [
-            {"entity": "system", "text": "You are an expert product analyst."},
-            {"entity": "user", "text": "Analyze the impact of TechCorp's new smartphone release."},
-            {"entity": "llm", "text": "Understood. I will start by reviewing product specifications."},
-            {"entity": "user", "text": "Consider the hardware features and overall design innovations."},
-            {"entity": "llm", "text": "I have noted the advanced features and unique design aspects."},
-            {"entity": "user", "text": "Now, factor in consumer reviews and market sentiment."},
-            {"entity": "llm", "text": "I am gathering insights from various online articles and social media metrics."},
-            {"entity": "user", "text": "Provide a comprehensive analysis on potential market trends."}
+            {"entity": "system", "text": "You are an expert VR technology analyst."},
+            {"entity": "user", "text": "Analyze the market impact of Meta's new Meta Quest VR headset."},
+            {"entity": "llm",  "text": "Understood. I will review the technical features and market positioning."},
+            {"entity": "user", "text": "Consider both the technological innovations and the consumer pricing strategy."},
+            {"entity": "llm",  "text": "I have noted improvements in display resolution and tracking capabilities, as well as insights into competitive pricing."},
+            {"entity": "user", "text": "Now, provide an overall analysis including consumer sentiment and potential future trends in the VR market."}
         ]
 
-        # 5. Optionally, set a custom topic focuser (if desired).
-        custom_topic_focuser = "Focus on the balance between innovation and pricing strategy."
+        # 5) Custom topic focuser
+        custom_topic_focuser = "Focus on the balance between technological innovation and market adoption for VR devices."
 
-        # 6. Call process_data to generate the molded result.
+        # 6) Call process_data and print the result
         try:
             result = await data_molder.process_data(
                 online_data=online_data,
@@ -240,9 +266,10 @@ if __name__ == "__main__":
                 custom_topic_focuser=custom_topic_focuser
             )
             print("Result from DataMolder:")
-            print(result)
+            print(json.dumps(result, indent=2))
         except Exception as e:
             print(f"DataMolder processing failed: {e}")
 
-
     asyncio.run(main())
+
+
