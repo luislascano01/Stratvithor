@@ -51,6 +51,9 @@ RUN python -m pip install --upgrade pip && \
     python -m pip install uvicorn || echo "WARN: Failed to install uvicorn"
 RUN pip3 install uvicorn
 RUN pip3 install python-docx
+RUN pip3 install docx2pdf
+RUN apt-get update && apt-get install -y pandoc && rm -rf /var/lib/apt/lists/*
+RUN pip3 install pypandoc
 
 # Output Python version to verify installation.
 RUN echo "Python version:" && python --version
