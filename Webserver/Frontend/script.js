@@ -49,6 +49,9 @@ async function loadPreviousReport(taskId) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+
+    createDownloadUI();
+    hideDownloadUI();
     // Basic element check for chat container
     const chatContainer = document.getElementById('chat-container');
     if (!chatContainer) {
@@ -153,12 +156,9 @@ document.addEventListener('DOMContentLoaded', function () {
         chatContainer.appendChild(messageDiv);
         try {
             const response = await fetch("/reportComposerAPI/generate_report", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-API-Key": "your-secure-api-key"
-                },
-                body: JSON.stringify({
+                method: "POST", headers: {
+                    "Content-Type": "application/json", "X-API-Key": "your-secure-api-key"
+                }, body: JSON.stringify({
                     company_name: companyName,
                     mock: window.mock_global,
                     prompt_name: selectedPrompt,
@@ -304,19 +304,13 @@ function autoCenterGraph() {
     const graphHeight = maxY - minY;
     const centerX = minX + graphWidth / 1;
     const centerY = minY + graphHeight / 1;
-    const scale = Math.min(
-        width / (graphWidth * 2),
-        height / (graphHeight * 2)
-    );
+    const scale = Math.min(width / (graphWidth * 2), height / (graphHeight * 2));
     svg.transition()
         .duration(750)
-        .call(
-            zoom.transform,
-            d3.zoomIdentity
-                .translate(width / 5 - 54, height / 5)
-                .scale(scale)
-                .translate(-centerX - 20, -centerY + 7)
-        );
+        .call(zoom.transform, d3.zoomIdentity
+            .translate(width / 5 - 54, height / 5)
+            .scale(scale)
+            .translate(-centerX - 20, -centerY + 7));
 }
 
 // Drag Handlers
@@ -350,8 +344,7 @@ function openWebSocketForTask(taskId) {
         } else if (message.type === "update") {
             updateNodeStatus(message.node_id, message.status, message.result);
             nodeDetails[message.node_id] = {
-                status: message.status,
-                result: message.result
+                status: message.status, result: message.result
             };
             checkIfAllNodesComplete();
         }
@@ -359,6 +352,7 @@ function openWebSocketForTask(taskId) {
     ws.onclose = () => console.log("WebSocket closed for task:", taskId);
     ws.onerror = err => console.error("WebSocket error:", err);
 }
+
 function updateNodeStatus(nodeId, status, result) {
     const node = nodes.find(n => n.id == nodeId);
     if (!node) return;
@@ -387,7 +381,7 @@ function updateNodeStatus(nodeId, status, result) {
     // Update the tooltip using the "result" parameter
     svg.selectAll("circle")
         .filter(d => d.id == nodeId)
-        .each(function(d) {
+        .each(function (d) {
             const sel = d3.select(this);
             // Parse result if it's a string, otherwise use it as an object
             let resultObj = {};
@@ -464,9 +458,7 @@ function displayNodeDetails(nodeId, details) {
             }
         });
     } else {
-        onlineDataContent = (typeof onlineData === "object")
-            ? JSON.stringify(onlineData, null, 2)
-            : String(onlineData);
+        onlineDataContent = (typeof onlineData === "object") ? JSON.stringify(onlineData, null, 2) : String(onlineData);
     }
     onlineDataDiv.innerHTML = onlineDataContent;
     const separator0 = document.createElement("hr");
@@ -596,24 +588,41 @@ document.addEventListener('DOMContentLoaded', function () {
     toggleMockButton.addEventListener('click', window.toggleMock);
 });
 
-// New function to generate the aggregated report view
+
+function showDAGView() {
+    // Hide the report view.
+    document.getElementById('report-view-container').classList.add('hidden');
+
+    // Show the DAG and chat containers.
+    document.getElementById('dag-updates-container').classList.remove('hidden');
+    document.getElementById('chat-container').classList.remove('hidden');
+
+    // Hide the download UI.
+    hideDownloadUI();
+}
+
+
+function newReport() {
+    window.location.reload();
+
+}
+
 function showReportView() {
-    // First, hide other main views (chat and DAG)
+    // Hide other views.
     document.getElementById('chat-container').classList.add('hidden');
     document.getElementById('dag-updates-container').classList.add('hidden');
     document.getElementById('chat-input-panel').classList.add('hidden');
 
-    // Show the report view container
+    // Show the report view.
     const reportContainer = document.getElementById('report-view-container');
     reportContainer.classList.remove('hidden');
 
-    // Build the aggregated content
-    let aggregatedHtml = '';
-    // Iterate through the global nodes array
+    // (Your existing code to build the aggregated report content goes here)
+    // For example:
+    let aggregatedHtml = `<h2 class="text-xl font-bold mb-2">Aggregated Report</h2>`;
     nodes.forEach(node => {
         const details = nodeDetails[node.id];
         if (details) {
-            // Get the result object; if it's a JSON string, try to parse it
             let resultObj = details.result;
             if (typeof resultObj === "string") {
                 try {
@@ -623,34 +632,127 @@ function showReportView() {
                 }
             }
             resultObj = resultObj || {};
-            // Use a section title (or a default)
             const sectionTitle = resultObj.section_title || resultObj.section_tile || "Untitled Section";
-            // Get the LLM response content (assumed markdown)
             let llmContent = resultObj.llm || "No LLM response found.";
             if (typeof llmContent !== "string") {
                 llmContent = JSON.stringify(llmContent, null, 2);
             }
-            // Append an H1 for the section title and a div for the parsed markdown content
             aggregatedHtml += `<h1 class="text-2xl font-bold my-4">${sectionTitle}</h1>`;
             aggregatedHtml += `<div class="whitespace-pre-wrap mb-4">${marked.parse(llmContent)}</div>`;
         }
     });
+    reportContainer.innerHTML = aggregatedHtml;
 
-    // Set the inner HTML of the report view container (keeping the header)
-    reportContainer.innerHTML = `<h2 class="text-xl font-bold mb-2">Aggregated Report</h2>` + aggregatedHtml;
+    // Only show the download UI if all nodes are complete.
+    if (checkIfAllNodesComplete()) {
+        createDownloadUI();
+    } else {
+        console.log("Report not complete; download UI will not be shown.");
+    }
 }
 
-function showDAGView() {
-    // Hide the aggregated report view
-    document.getElementById('report-view-container').classList.add('hidden');
+// =============================
+// DOWNLOAD UI FUNCTIONS
+// =============================
+// Creates the download UI and injects it into the header if it does not already exist.
+function createDownloadUI() {
+    // Check if the download UI already exists and return if it does.
+    if (document.getElementById('header-download-ui')) {
+        console.log("Download UI already exists.");
+        return;
+    }
 
-    // Show the DAG container and related panels
-    document.getElementById('dag-updates-container').classList.remove('hidden');
-    document.getElementById('chat-container').classList.remove('hidden');
+    // Create a container for the download UI.
+    const container = document.createElement('div');
+    container.id = 'header-download-ui';
+    container.className = "ml-auto flex items-center space-x-2"; // This will align it to the right in your header.
+
+    // Create the <select> element for file formats.
+    const select = document.createElement('select');
+    select.id = "download-format-select";
+    select.className = "p-2 border rounded text-black"; // Ensure the text color is set appropriately.
+
+    // Create the download button.
+    const btn = document.createElement('button');
+    btn.id = "download-button";
+    btn.className = "bg-blue-500 hover:bg-blue-600 text-white p-2 rounded";
+    btn.textContent = "Download Report";
+
+    // Append the select and button to the container.
+    container.appendChild(select);
+    container.appendChild(btn);
+
+    // Append the container to the header.
+    const header = document.querySelector("header");
+    header.appendChild(container);
+
+    // Load available download options into the dropdown.
+    loadDownloadOptions(select);
+
+    // Attach the click event handler.
+    btn.addEventListener('click', async function () {
+        if (!window.currentTaskId) {
+            alert("No task available for download.");
+            return;
+        }
+        const selectedFormat = select.value;
+        const url = `/reportComposerAPI/download_report/${window.currentTaskId}?file_type=${selectedFormat}`;
+        console.log("Attempting download from:", url);
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Download failed with status ${response.status}`);
+            }
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = blobUrl;
+            a.download = `${window.currentTaskId}.${selectedFormat}`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(blobUrl);
+        } catch (err) {
+            console.error("Error downloading file:", err);
+            alert("Error downloading file: " + err.message);
+        }
+    });
 }
 
+// Helper function to load download options into a given <select> element.
+async function loadDownloadOptions(selectElement) {
+    try {
+        const response = await fetch("/reportComposerAPI/download_options");
+        if (!response.ok) throw new Error("Failed to fetch download options");
+        const data = await response.json(); // Expected format: { available_options: ["docx", "pdf"] }
 
-function newReport() {
-    window.location.reload();
+        // Clear any existing options.
+        selectElement.innerHTML = "";
 
+        // Create and append the default placeholder option.
+        const defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = "Select...";
+        defaultOption.disabled = true;
+        defaultOption.selected = true;
+        selectElement.appendChild(defaultOption);
+
+        // Append the fetched options.
+        data.available_options.forEach(option => {
+            const opt = document.createElement("option");
+            opt.value = option;
+            opt.textContent = option.toUpperCase();
+            selectElement.appendChild(opt);
+        });
+    } catch (error) {
+        console.error("Error loading download options:", error);
+    }
+}
+
+// Hides the download UI from the header.
+function hideDownloadUI() {
+    const downloadUI = document.getElementById('header-download-ui');
+    if (downloadUI) {
+        downloadUI.remove();
+    }
 }

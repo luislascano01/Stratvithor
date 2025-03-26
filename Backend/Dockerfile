@@ -50,6 +50,7 @@ RUN apt-get update && \
 RUN python -m pip install --upgrade pip && \
     python -m pip install uvicorn || echo "WARN: Failed to install uvicorn"
 RUN pip3 install uvicorn
+RUN pip3 install python-docx
 
 # Output Python version to verify installation.
 RUN echo "Python version:" && python --version
