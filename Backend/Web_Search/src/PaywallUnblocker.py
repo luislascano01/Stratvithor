@@ -75,7 +75,7 @@ class PaywallUnblocker:
         except ImportError:
             logger.error("Please install undetected_chromedriver")
             return ""
-
+        return "Not available to retrieve archived page."
         # Construct Archive.ph URL by URL-encoding the target URL.
         encoded_url = urllib.parse.quote_plus(target_url, safe=":/")
         archive_url = f"https://{self.archive_provider}/{encoded_url}"
