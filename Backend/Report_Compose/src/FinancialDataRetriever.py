@@ -281,9 +281,6 @@ async def main():
     vantage_key = load_api_key("./Credentials/Credentials.yaml", "Vantage")
     polygon_key = load_api_key("./Credentials/Credentials.yaml", "Polygon")
 
-    # 2) Import your FinancialDataRetriever class (adjust import path as needed)
-    from FinancialDataRetriever import FinancialDataRetriever
-
     # 3) Instantiate the retriever
     retriever = FinancialDataRetriever(
         alpha_vantage_api_key=vantage_key,
@@ -291,11 +288,11 @@ async def main():
     )
 
     # 4) Test retrieval with a sample company
-    company = "United Airlines"
+    company = "American Airlines"
     logging.info(f"Retrieving financial info for: {company}")
     result = await retriever.get_financial_info_yahoo(company)
 
-    # 5) Check results
+    # 5) Check resultss
     if "INFO_NOT_FOUND" in result:
         logging.info(f"No data found for '{company}'.")
     else:
