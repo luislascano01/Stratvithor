@@ -57,8 +57,8 @@ RUN apt-get update && \
     apt-get install -y libreoffice
 RUN pip3 install pypandoc
 RUN pip3 install alpha_vantage
-
-
+RUN pip3 install -U polygon-api-client
+RUN pip3 install --upgrade openai
 
 # Output Python version to verify installation.
 RUN echo "Python version:" && python --version
