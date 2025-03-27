@@ -4,8 +4,23 @@ import asyncio
 import json
 from openai import OpenAI
 
+from datetime import datetime
+
+
+def get_todays_date():
+    today = datetime.now()
+    day = today.day
+    # Determine ordinal suffix for the day
+    if 4 <= day <= 20 or 24 <= day <= 30:
+        suffix = "th"
+    else:
+        suffix = ["st", "nd", "rd"][day % 10 - 1]
+    # Build formatted string: e.g., "Thursday, March 27th, 2025"
+    return today.strftime("%A, %B ") + str(day) + suffix + today.strftime(", %Y")
+
 
 from typing import Any, Dict, Optional, List
+
 
 class DataMolder:
     """
@@ -28,10 +43,10 @@ class DataMolder:
         self.client = OpenAI(api_key=self.openai_api_key)
 
     async def process_data(
-        self,
-        online_data: Dict[str, Any],
-        ancestor_messages: List[Dict[str, Any]] = None,
-        custom_topic_focuser: Optional[str] = ""
+            self,
+            online_data: Dict[str, Any],
+            ancestor_messages: List[Dict[str, Any]] = None,
+            custom_topic_focuser: Optional[str] = ""
     ) -> Dict[str, str]:
         """
         Processes the raw data by combining it with parent context and custom topic focuser,
@@ -48,21 +63,24 @@ class DataMolder:
             ancestor_messages = []
 
         # A system message plus an initial user message referencing custom_topic_focuser.
+
+        date_str = get_todays_date()
         molder_messages = [{
             "entity": "system",
             "text": (
-                "You are an assistant with the responsibility of answering the user prompts. "
-                "The user sometimes will provide online data to answer these prompts in the "
-                "most up-to-date way. However, if no online data is provided, then you must "
-                "answer to the best of your knowledge at the time of your request. "
-                "Please provide your response in markdown style, with correct citation "
-                "of the online data sources. If the online data is empty, ignore it "
-                "and do not think of its existence. "
-                "Attempt to provide your most accurate response.\n"
-                "For every response, use markdown format, however, do not start your response with a markdown header, but instead "
-                "give a plain text intro when starting your response. Do not re-state the question. The intro should start "
-                "answering right away. Follow the markdown format appropriately."
-                "Your response should be an entire essay providing in-depth analysis. Please provide long response"
+                    "Today's Date: " + date_str + "\n" +
+                    "You are an assistant with the responsibility of answering the user prompts. "
+                    "The user sometimes will provide online data to answer these prompts in the "
+                    "most up-to-date way. However, if no online data is provided, then you must "
+                    "answer to the best of your knowledge at the time of your request. "
+                    "Please provide your response in markdown style, with correct citation "
+                    "of the online data sources. If the online data is empty, ignore it "
+                    "and do not think of its existence. "
+                    "Attempt to provide your most accurate response.\n"
+                    "For every response, use markdown format, however, do not start your response with a markdown header, but instead "
+                    "give a plain text intro when starting your response. Do not re-state the question. The intro should start "
+                    "answering right away. Follow the markdown format appropriately."
+                    "Your response should be an entire essay providing in-depth analysis. Please provide long response"
             )
         }, {
             "entity": "user",
@@ -75,8 +93,8 @@ class DataMolder:
 
         # Convert ancestor_messages into a ChatCompletion-style list.
         role_map = {
-            "system": "system",       # You can also map 'system' to 'system'
-            "developer": "system",    # If you want to treat 'developer' as system
+            "system": "system",  # You can also map 'system' to 'system'
+            "developer": "system",  # If you want to treat 'developer' as system
             "user": "user",
             "llm": "assistant"
         }
@@ -94,13 +112,14 @@ class DataMolder:
         if online_data:
             data_str = json.dumps(online_data, indent=2)
             chat_messages.append({
-                "role": "system",
+                "role": "user",
                 "content": (
-                    "##########\nONLINE_DATA\n----------\n" +
-                    data_str +
-                    "\n----------\nEnd of ONLINE_DATA\n##########\n"
+                        "##########\nONLINE_DATA\n----------\n" +
+                        data_str +
+                        "\n----------\nEnd of ONLINE_DATA\n##########\n"
                 )
             })
+        logging.info(f'chat_messages: {json.dumps(chat_messages, indent=2)}')
 
         # If there's a custom topic focuser, add it as a final user message (already added above).
         # Possibly omit if you do not need it repeated.
@@ -117,8 +136,10 @@ class DataMolder:
                 # Use the new ChatCompletion API
                 if self.model_name in ["gpt-4o", "gpt-3.5-turbo"]:
                     response = await asyncio.to_thread(
-                        lambda: self.client.chat.completions.create(model=self.model_name,
-                        messages=chat_messages)
+                        lambda: self.client.chat.completions.create(
+                            model=self.model_name,
+                            messages=chat_messages
+                        )
                     )
                     output_text = response.choices[0].message.content
                     return {
@@ -127,31 +148,45 @@ class DataMolder:
                     }
 
                 elif self.model_name == "gpt-4o-search-preview":
-                    # For search-preview, add web_search_options={}
-                    response = await asyncio.to_thread(
-                        lambda: self.client.chat.completions.create(model=self.model_name,
-                        messages=chat_messages,
-                        web_search_options={})
-                    )
-                    message = response.choices[0].message
-                    llm_response = message.content
+                    try:
+                        response = await asyncio.to_thread(
+                            lambda: self.client.chat.completions.create(
+                                model=self.model_name,
+                                messages=chat_messages,
+                                web_search_options={}
+                            )
+                        )
+                        message = response.choices[0].message
+                        llm_response = message.content
 
-                    annotations = getattr(message, "annotations", [])
-                    references = []
-                    for annotation in annotations:
-                        if getattr(annotation, "type", None) == "url_citation":
-                            url_citation = getattr(annotation, "url_citation", None)
-                            if url_citation:
-                                title = getattr(url_citation, "title", "No Title")
-                                url = getattr(url_citation, "url", "No URL")
-                                references.append(f"{title}: {url}")
-
-                    web_references = "\n".join(references)
-                    return {
-                        "llm_response": llm_response,
-                        "web_references": web_references
-                    }
-
+                        annotations = getattr(message, "annotations", [])
+                        references = []
+                        for annotation in annotations:
+                            if getattr(annotation, "type", None) == "url_citation":
+                                url_citation = getattr(annotation, "url_citation", None)
+                                if url_citation:
+                                    title = getattr(url_citation, "title", "No Title")
+                                    url = getattr(url_citation, "url", "No URL")
+                                    references.append(f"{title}: {url}")
+                        web_references = "\n".join(references)
+                        return {
+                            "llm_response": llm_response,
+                            "web_references": web_references
+                        }
+                    except Exception as e:
+                        logging.info("gpt-4o-search-preview failed with error: %s. Falling back to gpt-4o.", e)
+                        # Fall back to gpt-4o if search-preview fails.
+                        response = await asyncio.to_thread(
+                            lambda: self.client.chat.completions.create(
+                                model="gpt-4o",
+                                messages=chat_messages
+                            )
+                        )
+                        output_text = response.choices[0].message.content
+                        return {
+                            "llm_response": output_text,
+                            "web_references": ""
+                        }
                 else:
                     raise Exception("Unsupported model name provided.")
 
@@ -183,27 +218,25 @@ class DataMolder:
                             )
                             data_str = json.dumps(online_data, indent=2)
                             # Update the system message with the truncated data
-                            # Remove the last system message if it's the ONLINE_DATA
                             if chat_messages and chat_messages[-1]["content"].startswith("##########\nONLINE_DATA"):
                                 chat_messages.pop()
                             chat_messages.append({
                                 "role": "system",
                                 "content": (
-                                    "##########\nONLINE_DATA\n----------\n" +
-                                    data_str +
-                                    "\n----------\nEnd of ONLINE_DATA\n##########\n"
+                                        "##########\nONLINE_DATA\n----------\n" +
+                                        data_str +
+                                        "\n----------\nEnd of ONLINE_DATA\n##########\n"
                                 )
                             })
                             attempt += 1
                             continue
 
-                # If not a token-length issue or we cannot reduce further, break out
                 break
 
-        # If all attempts failed, raise the last exception
         raise Exception(
             f"DataMolder process_data failed after {attempt} attempts: {last_exception}"
         )
+
 
 # ------------------------------------------
 # Example usage script (main):
@@ -212,6 +245,7 @@ if __name__ == "__main__":
     import asyncio
     import json
     from Backend.Report_Compose.src.Integrator import load_openai_api_key
+
 
     async def main():
         # 1) Load your API key from credentials YAML (ensure the file path is correct)
@@ -249,10 +283,13 @@ if __name__ == "__main__":
         ancestor_messages = [
             {"entity": "system", "text": "You are an expert VR technology analyst."},
             {"entity": "user", "text": "Analyze the market impact of Meta's new Meta Quest VR headset."},
-            {"entity": "llm",  "text": "Understood. I will review the technical features and market positioning."},
-            {"entity": "user", "text": "Consider both the technological innovations and the consumer pricing strategy."},
-            {"entity": "llm",  "text": "I have noted improvements in display resolution and tracking capabilities, as well as insights into competitive pricing."},
-            {"entity": "user", "text": "Now, provide an overall analysis including consumer sentiment and potential future trends in the VR market."}
+            {"entity": "llm", "text": "Understood. I will review the technical features and market positioning."},
+            {"entity": "user",
+             "text": "Consider both the technological innovations and the consumer pricing strategy."},
+            {"entity": "llm",
+             "text": "I have noted improvements in display resolution and tracking capabilities, as well as insights into competitive pricing."},
+            {"entity": "user",
+             "text": "Now, provide an overall analysis including consumer sentiment and potential future trends in the VR market."}
         ]
 
         # 5) Custom topic focuser
@@ -270,6 +307,5 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"DataMolder processing failed: {e}")
 
+
     asyncio.run(main())
-
-

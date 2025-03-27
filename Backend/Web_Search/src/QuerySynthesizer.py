@@ -80,7 +80,7 @@ class QuerySynthesizer:
                     # If group(1) matched, it's the triple-backtick version;
                     # otherwise, group(2) contains the entire text.
                     extracted_content = json_match.group(1) or json_match.group(2)
-                    logging.info("✅ QuerySynthesizer: Extracted JSON from LLM:\n", extracted_content+"\n")
+                    logging.info(f"✅ QuerySynthesizer: Extracted JSON from LLM:\n{extracted_content}\n")
                     return extracted_content
                 else:
                     logging.info("❌ QuerySynthesizer: No JSON formatting detected for search prompts; returning raw message.")

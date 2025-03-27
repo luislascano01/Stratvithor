@@ -16,7 +16,7 @@ prompts:
     system: false
   ownership:
     section_name: "Shareholders"
-    text: "Create a table of the shareholders who own 5% or more of all the company shares and create a table that has the following columns: Name, Number of shares owned, Percentage of ownership."
+    text: "Create a table of the shareholders who own 5% or more of all the company shares and create a table that has the following columns: Name, Number of shares owned, Percentage of ownership. Then talk about who this shareholders are if they're known."
     id: 3
     system: false
   stock_performance:

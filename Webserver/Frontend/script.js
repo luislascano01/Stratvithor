@@ -273,6 +273,7 @@ function displayNodeDetails(nodeId, details) {
     let resultObj = details.result;
     if (typeof resultObj === "string") {
         try {
+            console.log(resultObj);
             resultObj = JSON.parse(resultObj);
         } catch (err) {
             console.warn("Result is not valid JSON, using raw string.");
@@ -298,23 +299,35 @@ function displayNodeDetails(nodeId, details) {
     };
     llmDiv.innerHTML = marked.parse(finalMarkdown, {renderer});
     // Online Data
+    // Online Data
     const onlineDataDiv = document.createElement("div");
     onlineDataDiv.className = "text-sm text-gray-300 whitespace-pre-wrap text-left";
     const onlineData = resultObj.online_data || "No online data found.";
     let onlineDataContent = "";
     if (Array.isArray(onlineData.results)) {
         onlineData.results.forEach((resObj) => {
-            for (const [title, content] of Object.entries(resObj)) {
-                onlineDataContent += `<p class="text-left mb-2">
-                    <strong>${title}:</strong><br>
-                    ${typeof content === 'object' ? JSON.stringify(content, null, 2).trim() : content.trim()}
-                </p><hr class="my-2 border-gray-500" />`;
+            onlineDataContent += `<div class="reference-box p-2 border rounded mb-4">`;
+            if (resObj.title && resObj.url) {
+                onlineDataContent += `<a href="${resObj.url}" target="_blank" class="text-lg font-bold text-blue-600">${resObj.title}</a>`;
             }
+            if (resObj.scrapped_text) {
+                onlineDataContent += `<p class="text-sm mt-1">${resObj.scrapped_text}</p>`;
+            }
+            if (resObj.snippet) {
+                onlineDataContent += `<p class="text-sm mt-1 italic">${resObj.snippet}</p>`;
+            }
+            if (resObj.display_url && resObj.url) {
+                onlineDataContent += `<p class="text-xs mt-1"><a href="${resObj.url}" target="_blank" class="text-gray-500">${resObj.display_url}</a></p>`;
+            }
+            onlineDataContent += `</div>`;
         });
     } else {
         onlineDataContent = (typeof onlineData === "object") ? JSON.stringify(onlineData, null, 2) : String(onlineData);
     }
     onlineDataDiv.innerHTML = onlineDataContent;
+
+
+
     const separator0 = document.createElement("hr");
     const separator1 = document.createElement("hr");
     const separator2 = document.createElement("hr");
@@ -480,6 +493,7 @@ function showReportView() {
             let resultObj = details.result;
             if (typeof resultObj === "string") {
                 try {
+                    console.log(resultObj);
                     resultObj = JSON.parse(resultObj);
                 } catch (e) {
                     console.warn("Result for node", node.id, "is not valid JSON. Using raw string.");

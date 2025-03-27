@@ -225,7 +225,7 @@ class SearchIntegrator:
         logging.info("\n\n")
         print("[DEBUG] Completed generation of search prompts.")
 
-        matching_online_resources = self.get_web_urls_from_prompts(cse_id, search_prompts, num_results=3)
+        matching_online_resources = self.get_web_urls_from_prompts(cse_id, search_prompts, num_results=2)
         print(f'URLs found:\n')
         for i, resource in enumerate(matching_online_resources):
             print(f"{i}: {resource['url']}")
@@ -239,7 +239,7 @@ class SearchIntegrator:
         start_time = time.time()
         print("[DEBUG] Starting submission of scraping tasks.")
 
-        with ProcessPoolExecutor(max_workers=16) as executor:
+        with ProcessPoolExecutor(max_workers=20) as executor:
             future_to_res = {
                 executor.submit(process_resource_subprocess_worker,
                                 self.general_prompt,
@@ -270,8 +270,8 @@ class SearchIntegrator:
                                 req_id = self.summarizer_service.submit_request(
                                     raw_text,
                                     priority=10,
-                                    max_length=1200,
-                                    min_length=30,
+                                    max_length=700,
+                                    min_length=50,
                                     do_sample=False
                                 )
                                 # Wait for the summarization response.
@@ -308,7 +308,7 @@ class SearchIntegrator:
         print(f"[DEBUG] get_aggregated_response finished processing {len(processed_resources)} resources.")
         return processed_resources
 
-    def get_web_urls_from_prompts(self, cse_id: str, search_prompts: List[str], num_results: int = 5) -> List[Dict[str, str]]:
+    def get_web_urls_from_prompts(self, cse_id: str, search_prompts: List[str], num_results: int = 3) -> List[Dict[str, str]]:
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
         url_set = set()

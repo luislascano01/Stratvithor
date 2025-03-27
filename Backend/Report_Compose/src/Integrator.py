@@ -6,6 +6,13 @@ import pickle
 import random
 import tempfile
 import subprocess
+import urllib.parse
+
+
+import yfinance as yf
+from alpha_vantage.timeseries import TimeSeries
+from alpha_vantage.fundamentaldata import FundamentalData
+from alpha_vantage.alphavantage import AlphaVantage
 
 from typing import Dict
 from xml.etree.ElementTree import indent
@@ -21,7 +28,7 @@ import json
 import httpx
 
 
-def load_openai_api_key(yaml_file_path: str) -> str:
+def load_api_key(yaml_file_path: str, api_name: str) -> str:
     """
     Loads the OpenAI API key from the given YAML file.
     Implements error handling for missing file, parsing errors, or missing key.
@@ -39,7 +46,7 @@ def load_openai_api_key(yaml_file_path: str) -> str:
         if "API_Keys" not in data or "OpenAI" not in data["API_Keys"]:
             raise KeyError("OpenAI API key is missing from the YAML file.")
 
-        return data["API_Keys"]["OpenAI"]
+        return data["API_Keys"][api_name]
 
     except FileNotFoundError as e:
         print(f"Error: {e}")
@@ -48,6 +55,7 @@ def load_openai_api_key(yaml_file_path: str) -> str:
     except KeyError as e:
         print(f"Error: {e}")
     return ""
+
 
 
 class Integrator:
@@ -90,12 +98,16 @@ class Integrator:
         Initialize the Integrator with a path to the prompts YAML.
         Creates a PromptManager and a fresh ResultsDAG.
         """
+        self.molder_model = "gpt-4o"
         self.yaml_file_path = yaml_file_path  # <-- Add this line to store the file path
         self.prompt_manager = PromptManager(yaml_file_path)
         self.results_dag = ResultsDAG()
         self.tasks = {}
-        self.openAI_API_key = load_openai_api_key("./Credentials/Credentials.yaml")
+        self.openAI_API_key = load_api_key("./Credentials/Credentials.yaml", "OpenAI")
+        self.polygon_api_key = load_api_key("./Credentials/Credentials.yaml", "Polygon")
+        self.alpha_vantage_api_key = load_api_key("./Credentials/Credentials.yaml", "Vantage")
         self.focus_message = "Default Focus Message"
+        self.fin_numeric_cntxt = {"default": 0}
         self.web_search = True
 
         # At the end of the __init__ method of the Integrator class, add the following method:
@@ -146,9 +158,22 @@ class Integrator:
         else:
             online_data = {"results": [{"mock_data": "place_holder"}]}
         print(f'Count of articles found for node {node_id}: {len(online_data)}')
-
-        molder = DataMolder("gpt-4o", self.openAI_API_key)
-        ancestor_messages = self.get_ancestor_chat_hist(node_id)
+        self.molder_model = "gpt-4o-search-preview"
+        molder = DataMolder(self.molder_model, self.openAI_API_key)
+        ancestor_messages = self.get_ancestor_chat_hist(node_id).copy()
+        logging.info("Dumping Numerical Context")
+        num_context_message = "Here is some data for context" + json.dumps(self.fin_numeric_cntxt, indent=4)
+        logging.info("Dumped Numerical Context")
+        numeric_context = {"text": num_context_message, "entity": "user"}
+        ancestor_messages.insert(1, numeric_context)
+        if self.molder_model == "gpt-4o-search-preview":
+            if len(ancestor_messages) <= 2:
+                # If the list is too short, use all of it.
+                ancestor_messages = ancestor_messages
+            else:
+                # Otherwise, take the first two and the last one.
+                ancestor_messages = ancestor_messages[:2] + [ancestor_messages[-1]]
+                logging.info(f'Ancestor count of node {node_id}: {len(ancestor_messages)}')
         molded_tup = await molder.process_data(online_data, ancestor_messages, focus_message)
         response = molded_tup["llm_response"]
         llm_found_online_data = molded_tup["web_references"]
@@ -156,6 +181,7 @@ class Integrator:
         # Parse the newline-separated web references and create dictionary entries.
         if "results" in online_data and isinstance(online_data["results"], list):
             new_refs = []
+            cached_urls = []
             for line in llm_found_online_data.splitlines():
                 line = line.strip()
                 if not line:
@@ -168,7 +194,10 @@ class Integrator:
                 else:
                     title = line
                     url = ""
+                if url in cached_urls:
+                    continue
                 # Create a dictionary in the same format as online_data items.
+                cached_urls.append(url)
                 ref_dict = {
                     "url": url,
                     "display_url": url,  # For simplicity, using the full URL.
@@ -180,6 +209,8 @@ class Integrator:
                 new_refs.append(ref_dict)
             # Prepend the new web reference entries to the existing results.
             online_data["results"] = new_refs + online_data["results"]
+        else:
+            logging.info(f"No results found for node {node_id}")
 
         return response, online_data
 
@@ -283,17 +314,38 @@ class Integrator:
                 # IMPORTANT: Await the async call to process_node so that you store the final result.
                 response, online_data = await self.process_node(node_id, self.focus_message)
                 result = {'llm': response, 'online_data': online_data}
+                logging.info(f'Result node {node_id}: {result}')
             result['section_tile'] = node_name
             self.results_dag.store_result(node_id, result)
         except Exception as e:
             self.results_dag.mark_failed(node_id, str(e))
 
-    async def generate_report(self, focus_message: str, mock: bool = False, web_search: bool = True) -> str:
+    ######################################
+    ######################################
+    ######################################
+    #####################################
+    ####################
+    ###################
+    ###################
+    ######################################
+    ######################################
+    ###################
+
+    async def generate_report(self, focus_message: str, mock: bool = False, web_search: bool = True,
+                              company: bool = True) -> str:
         """
         Process the prompt DAG concurrently.
         Each node is scheduled as soon as its dependencies are complete.
         The web_search flag is set based on the API parameter.
         """
+        if company:
+            from Backend.Report_Compose.src.FinancialDataRetriever import FinancialDataRetriever
+            retriever = FinancialDataRetriever(
+                alpha_vantage_api_key=self.alpha_vantage_api_key,
+                polygon_api_key=self.polygon_api_key
+            )
+            self.fin_numeric_cntxt = await retriever.get_financial_info_yahoo(focus_message)
+
         self.focus_message = focus_message
         self.web_search = web_search  # Propagate the parameter to the integrator
 
@@ -404,7 +456,7 @@ class Integrator:
             doc.add_paragraph(llm_response)
 
         # Appendix for online data.
-        doc.add_heading("Appendix: Online Data", level=1)
+        """doc.add_heading("Appendix: Online Data", level=1)
         for idx, node_id in enumerate(node_order, start=1):
             node_result = dag_obj.get(str(node_id)) or dag_obj.get(node_id)
             if not node_result:
@@ -415,6 +467,86 @@ class Integrator:
                              f"Section {idx}")
             doc.add_heading(f"Section {idx} Online Data - {section_title}", level=2)
             doc.add_paragraph(str(online_data))
+        """
+        # ------------------------------
+        # Old Appendix for online data (to be replaced)
+        # ------------------------------
+        # doc.add_heading("Appendix: Online Data", level=1)
+        # for idx, node_id in enumerate(node_order, start=1):
+        #     node_result = dag_obj.get(str(node_id)) or dag_obj.get(node_id)
+        #     if not node_result:
+        #         continue
+        #     online_data = node_result.get("result", {}).get("online_data", "No online data found.")
+        #     section_title = (node_result.get("result", {}).get("section_tile") or
+        #                      node_result.get("result", {}).get("section_title") or
+        #                      f"Section {idx}")
+        #     doc.add_heading(f"Section {idx} Online Data - {section_title}", level=2)
+        #     doc.add_paragraph(str(online_data))
+
+        # ------------------------------
+        # New References Section for Online Data
+        # ------------------------------
+        # Import necessary OXML helpers for hyperlink creation.
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+        import docx.opc.constants
+
+        # Helper function to add a hyperlink to a paragraph.
+        def add_hyperlink(paragraph, url, text, color="0000FF", underline=True):
+            # This function creates a hyperlink within a paragraph.
+            part = paragraph.part
+            r_id = part.relate_to(url, docx.opc.constants.RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
+            hyperlink = OxmlElement('w:hyperlink')
+            hyperlink.set(qn('r:id'), r_id)
+            new_run = OxmlElement('w:r')
+            rPr = OxmlElement('w:rPr')
+            # Set color.
+            c = OxmlElement('w:color')
+            c.set(qn('w:val'), color)
+            rPr.append(c)
+            # Set underline property.
+            u = OxmlElement('w:u')
+            u.set(qn('w:val'), 'single' if underline else 'none')
+            rPr.append(u)
+            new_run.append(rPr)
+            new_run.text = text
+            hyperlink.append(new_run)
+            paragraph._p.append(hyperlink)
+            return hyperlink
+
+        doc.add_heading("References", level=1)
+        # For each node, if online data is available, list its references.
+        for idx, node_id in enumerate(node_order, start=1):
+
+            node_result = dag_obj.get(str(node_id)) or dag_obj.get(node_id)
+            if not node_result:
+                continue
+            online_data = node_result.get("result", {}).get("online_data", None)
+            if not online_data or "results" not in online_data:
+                continue
+            section_title = (node_result.get("result", {}).get("section_tile") or
+                             node_result.get("result", {}).get("section_title") or
+                             f"Section {idx}")
+            doc.add_heading(f"References for {section_title}", level=2)
+            for res in online_data["results"]:
+                # Create a reference box.
+                box_para = doc.add_paragraph()
+                # Add the title as hyperlinked bold text if URL is present.
+                if res.get("title") and res.get("url"):
+                    run = box_para.add_run("")
+                    add_hyperlink(box_para, res.get("url"), res.get("title"), color="0000FF", underline=True)
+                else:
+                    box_para.add_run(res.get("title", "No Title")).bold = True
+
+                # Add the scrapped text below, if available.
+                if res.get("scrapped_text"):
+                    doc.add_paragraph(res.get("scrapped_text"), style="Intense Quote")
+                # Add display_url as a smaller source line, if available.
+                if res.get("display_url") and res.get("url"):
+                    src_para = doc.add_paragraph("Source: ")
+                    add_hyperlink(src_para, res.get("url"), res.get("display_url"), color="808080", underline=False)
+                # Add a separator.
+                doc.add_paragraph("------------------------------")
 
         # Save the document to a temporary file.
         tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
@@ -454,3 +586,6 @@ class Integrator:
             raise Exception("PDF conversion failed; output file not found.")
 
         return pdf_file
+
+
+

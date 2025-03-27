@@ -106,6 +106,8 @@ class DataQuerier:
         logging.error("LLM API not reachable at provided or alternative base URL. Proceeding with original URL.")
         return url
 
+    import aiohttp
+
     async def fetch_data(self):
         """
         Makes an asynchronous POST request to the SearchIntegrator API.
@@ -121,8 +123,12 @@ class DataQuerier:
             "cse_id": self.cse_id
         }
         logging.info(f'🔍 Sending POST request to SearchIntegrator API @ {self.search_api_url}')
+
+        # Set a custom timeout of 3600 seconds (1 hour)
+        timeout = aiohttp.ClientTimeout(total=3600)
+
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.post(self.search_api_url, json=payload) as response:
                     if response.status == 200:
                         self.query_result = await response.json()
