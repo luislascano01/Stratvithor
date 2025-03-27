@@ -80,7 +80,8 @@ class DataMolder:
                     "For every response, use markdown format, however, do not start your response with a markdown header, but instead "
                     "give a plain text intro when starting your response. Do not re-state the question. The intro should start "
                     "answering right away. Follow the markdown format appropriately."
-                    "Your response should be an entire essay providing in-depth analysis. Please provide long response"
+                    "Your response should be an entire essay section providing in-depth analysis. Please provide long two page response."
+                    "If you produce tables, do not provide empty columns or rows"
             )
         }, {
             "entity": "user",

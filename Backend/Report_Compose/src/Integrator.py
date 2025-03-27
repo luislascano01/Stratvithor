@@ -109,6 +109,8 @@ class Integrator:
         self.focus_message = "Default Focus Message"
         self.fin_numeric_cntxt = {"default": 0}
         self.web_search = True
+        self.failed_nodes = asyncio.Queue()
+        self.node_attempts = {}
 
         # At the end of the __init__ method of the Integrator class, add the following method:
 
@@ -126,20 +128,48 @@ class Integrator:
                 logging.error("Attribute '%s' is NOT pickleable: %s", key, ex)
         return state
 
+    import asyncio
+    import logging
+    import httpx
+
     async def get_search_api_url(self):
-        # List candidate base URLs in order of preference.
+        """
+        Concurrently checks candidate base URLs by polling their /health endpoint every 10 seconds,
+        for up to 2 minutes. Returns the /search endpoint of the first candidate to respond successfully.
+        Raises an exception if none respond within the timeout.
+        """
         candidates = ["http://localhost:8383", "http://web_search_api:8383"]
-        async with httpx.AsyncClient() as client:
-            for base_url in candidates:
-                health_url = f"{base_url}/health"
-                try:
-                    response = await client.get(health_url, timeout=2.0)
-                    if response.status_code == 200 and response.json().get("status") == "ok":
-                        # Return the /search endpoint URL for the healthy candidate.
-                        return f"{base_url}/search"
-                except Exception as e:
-                    print(f"Health check failed for {base_url}: {e}")
-        raise Exception("No available Search API endpoint.")
+
+        async def check_candidate(base_url: str) -> str:
+            health_url = f"{base_url}/health"
+            timeout = 1000  # seconds for the entire candidate
+            interval = 10  # poll every 10 seconds
+            end_time = asyncio.get_running_loop().time() + timeout
+            async with httpx.AsyncClient() as client:
+                while asyncio.get_running_loop().time() < end_time:
+                    try:
+                        response = await client.get(health_url, timeout=15.0)
+                        if response.status_code == 200 and response.json().get("status") == "ok":
+                            return f"{base_url}/search"
+                    except Exception as e:
+                        logging.info("Health check failed for %s: %s", base_url, e)
+                    await asyncio.sleep(interval)
+            return None
+
+        tasks = [asyncio.create_task(check_candidate(url)) for url in candidates]
+        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+
+        # Cancel any pending tasks
+        for task in pending:
+            task.cancel()
+
+        # Check if any candidate succeeded
+        for task in done:
+            result = task.result()
+            if result:
+                return result
+
+        raise Exception("No available Search API endpoint after health checks.")
 
     async def process_node(self, node_id: int, focus_message) -> tuple[None, None] | tuple[str, any]:
         curr_prompt = self.prompt_manager.get_prompt_by_id(node_id)
@@ -150,7 +180,13 @@ class Integrator:
 
         if self.web_search:
             # Dynamically determine the Search API URL.
+            # TODO: The search_api_url may return an exception of failure if
+            # the api endpoint is to busy and won't send a response back. Therefore,
+            # we must try to get the search_api_url every 5 seconds as longs as there
+            # are other nodes being processed. I still do not know how to properly code this
+            # since inside this scope there is no way to know if there are nodes being executed (I think).
             search_api_url = await self.get_search_api_url()
+            ###
             querier = DataQuerier(curr_prompt['text'], focus_message, search_api_url)
             print(f'Processing node {node_id} with prompt: {json.dumps(curr_prompt, indent=4)}')
             await querier.query_and_process()
@@ -314,7 +350,7 @@ class Integrator:
                 # IMPORTANT: Await the async call to process_node so that you store the final result.
                 response, online_data = await self.process_node(node_id, self.focus_message)
                 result = {'llm': response, 'online_data': online_data}
-                logging.info(f'Result node {node_id}: {result}')
+                # logging.info(f'Result node {node_id}: {result}')
             result['section_tile'] = node_name
             self.results_dag.store_result(node_id, result)
         except Exception as e:
@@ -362,7 +398,7 @@ class Integrator:
         # Await all node tasks concurrently
         await asyncio.gather(*self.tasks.values())
 
-        print(json.dumps(self.results_dag.to_json(), indent=4))
+        #print(json.dumps(self.results_dag.to_json(), indent=4))
         return self.results_dag.to_json()
 
     def generate_docx_report(self, llm_format: str = "Markdown") -> str:
