@@ -56,6 +56,9 @@ RUN apt-get update && apt-get install -y pandoc && rm -rf /var/lib/apt/lists/*
 RUN apt-get update && \
     apt-get install -y libreoffice
 RUN pip3 install pypandoc
+RUN pip3 install alpha_vantage
+
+
 
 # Output Python version to verify installation.
 RUN echo "Python version:" && python --version
